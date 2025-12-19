@@ -40,24 +40,22 @@ export function ChatWidget() {
               <h1 className="text-base font-semibold text-foreground">
                 ON-PNT® Assistant
               </h1>
-              <div className="flex gap-3">
+              <div className="flex gap-1">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => setIsMinimized(true)}
                   data-testid="button-minimize"
-                  className="h-9 w-9"
                 >
-                  <Minus className="w-5 h-5" />
+                  <Minus className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={() => setIsOpen(false)}
                   data-testid="button-close-chat"
-                  className="h-9 w-9"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             </div>
