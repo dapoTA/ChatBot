@@ -36,21 +36,15 @@ export function ChatWidget() {
             data-testid="dialog-chat"
           >
             {/* Header with Controls */}
-            <div className="h-16 border-b border-border bg-background flex items-center justify-between px-6 flex-shrink-0 relative z-10 pointer-events-auto">
+            <div className="h-16 border-b border-border bg-background flex items-center justify-between px-6 flex-shrink-0">
               <h1 className="text-base font-semibold text-foreground">
                 ON-PNT® Assistant
               </h1>
-              <div className="flex gap-1 pointer-events-auto relative z-20">
+              <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    setIsMinimized(true);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
+                  onClick={() => setIsMinimized(true)}
                   data-testid="button-minimize"
                 >
                   <Minus className="w-4 h-4" />
@@ -58,13 +52,7 @@ export function ChatWidget() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    setIsOpen(false);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
+                  onClick={() => setIsOpen(false)}
                   data-testid="button-close-chat"
                 >
                   <X className="w-4 h-4" />

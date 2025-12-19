@@ -39,10 +39,12 @@ export default function Chat({ isWidget = false }: ChatProps) {
         ? "h-full flex-1" 
         : "h-screen w-full max-w-2xl mx-auto border-l border-r"
     )}>
-      {/* Header */}
-      <header className="h-14 border-b border-border bg-background flex items-center px-6 flex-shrink-0">
-        <h1 className="text-base font-semibold text-foreground">ON-PNT® Assistant</h1>
-      </header>
+      {/* Header - only show when not a widget */}
+      {!isWidget && (
+        <header className="h-14 border-b border-border bg-background flex items-center px-6 flex-shrink-0">
+          <h1 className="text-base font-semibold text-foreground">ON-PNT® Assistant</h1>
+        </header>
+      )}
 
       {/* Chat Area */}
       <ScrollArea className="flex-1 overflow-hidden">
