@@ -64,13 +64,15 @@ export default function Chat({ isWidget = false }: ChatProps) {
                   </div>
                 )}
                 <div className={cn(
-                  "max-w-sm p-3 rounded-lg text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none",
+                  "max-w-sm p-3 rounded-lg text-sm leading-relaxed",
                   msg.role === "user" 
                     ? "bg-primary text-primary-foreground rounded-br-none" 
                     : "bg-white dark:bg-secondary text-foreground border border-border rounded-bl-none"
                 )}>
                   {msg.role === "assistant" ? (
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                    </div>
                   ) : (
                     <p>{msg.content}</p>
                   )}
