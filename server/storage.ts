@@ -1,38 +1,43 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import { db } from "./db";
+import { documents, messages, type InsertDocument, type InsertMessage } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getDocuments(): Promise<(typeof documents.$inferSelect)[]>;
+  createDocument(doc: InsertDocument): Promise<typeof documents.$inferSelect>;
+  deleteDocument(id: number): Promise<void>;
+  
+  getMessages(): Promise<(typeof messages.$inferSelect)[]>;
+  createMessage(msg: InsertMessage): Promise<typeof messages.$inferSelect>;
+  clearMessages(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  async getDocuments() {
+    return await db.select().from(documents).orderBy(desc(documents.createdAt));
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async createDocument(doc: InsertDocument) {
+    const [document] = await db.insert(documents).values(doc).returning();
+    return document;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async deleteDocument(id: number) {
+    await db.delete(documents).where(eq(documents.id, id));
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async getMessages() {
+    return await db.select().from(messages).orderBy(messages.createdAt);
+  }
+
+  async createMessage(msg: InsertMessage) {
+    const [message] = await db.insert(messages).values(msg).returning();
+    return message;
+  }
+
+  async clearMessages() {
+    await db.delete(messages);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
