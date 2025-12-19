@@ -8,7 +8,11 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 
-export default function Chat() {
+interface ChatProps {
+  isWidget?: boolean;
+}
+
+export default function Chat({ isWidget = false }: ChatProps) {
   const { data: messages } = useChatHistory();
   const sendMessage = useSendMessage();
   
@@ -29,7 +33,12 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-2xl mx-auto border-l border-r border-border">
+    <div className={cn(
+      "flex flex-col bg-background border-border",
+      isWidget 
+        ? "h-full flex-1" 
+        : "h-screen w-full max-w-2xl mx-auto border-l border-r"
+    )}>
       {/* Header */}
       <header className="h-14 border-b border-border bg-background flex items-center px-6 flex-shrink-0">
         <h1 className="text-base font-semibold text-foreground">ON-PNT® Assistant</h1>
