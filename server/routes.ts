@@ -3,10 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { registerChatRoutes } from "./replit_integrations/chat";
+import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint";
 import OpenAI from "openai";
 
-// Initialize OpenAI client using integration env vars
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -16,7 +15,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Document management routes
+
+  // ─── Document routes ────────────────────────────────────────────────────────
+
   app.get(api.documents.list.path, async (req, res) => {
     const docs = await storage.getDocuments();
     res.json(docs);
@@ -29,10 +30,7 @@ export async function registerRoutes(
       res.status(201).json(doc);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        return res.status(400).json({
-          message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
-        });
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
       }
       throw err;
     }
@@ -44,7 +42,8 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
-  // Chat routes
+  // ─── Chat routes ─────────────────────────────────────────────────────────────
+
   app.get(api.chat.history.path, async (req, res) => {
     const messages = await storage.getMessages();
     res.json(messages);
@@ -58,36 +57,38 @@ export async function registerRoutes(
   app.post(api.chat.send.path, async (req, res) => {
     try {
       const { message } = api.chat.send.input.parse(req.body);
-      
-      // Save user message
+
       await storage.createMessage({ role: 'user', content: message });
 
-      // Get context from documents
       const docs = await storage.getDocuments();
-      const context = docs.map(d => 
-        `[${d.type.toUpperCase()}] ${d.title} (${d.url}):\n${d.content}`
-      ).join('\n\n');
+      const context = docs.map(d =>
+        `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
+      ).join('\n\n---\n\n');
 
-      // Construct prompt for RAG
-      const systemPrompt = `You are a helpful SharePoint assistant. 
-      Answer the user's question based ONLY on the following context.
-      If the answer is not in the context, say so politely.
-      
-      Context:
-      ${context}`;
+      const systemPrompt = `You are a helpful SharePoint assistant for this organization.
 
-      // Call OpenAI
+Your job is to answer questions based ONLY on the documents provided below.
+If the answer is not found in the documents, say so politely and suggest the user check SharePoint directly.
+
+Rules:
+- Always cite the specific document(s) you used to answer the question.
+- When referencing a document, include a Markdown link using the exact URL provided in the source: [Document Title](URL)
+- If multiple documents are relevant, cite all of them.
+- Keep answers clear and concise. Use bullet points where helpful.
+- Never make up information not present in the documents.
+
+Available documents:
+${context || "No documents have been loaded yet. Please sync your SharePoint library in the Settings page."}`;
+
       const completion = await openai.chat.completions.create({
         model: "gpt-5.1",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: message }
+          { role: "user", content: message },
         ],
       });
 
       const aiResponse = completion.choices[0].message.content || "I couldn't generate a response.";
-
-      // Save and return AI message
       const savedMessage = await storage.createMessage({ role: 'assistant', content: aiResponse });
       res.json(savedMessage);
 
@@ -97,7 +98,98 @@ export async function registerRoutes(
     }
   });
 
-  // Seed data function
+  // ─── SharePoint config routes ─────────────────────────────────────────────
+
+  app.get(api.sharepoint.getConfig.path, async (req, res) => {
+    const config = await storage.getSharepointConfig();
+    if (config) {
+      // Mask password before sending to frontend
+      res.json({ ...config, password: config.password ? "••••••••" : "" });
+    } else {
+      res.json(null);
+    }
+  });
+
+  app.post(api.sharepoint.saveConfig.path, async (req, res) => {
+    try {
+      const input = api.sharepoint.saveConfig.input.parse(req.body);
+
+      // If password is the masked placeholder, keep the existing password
+      if (input.password === "••••••••") {
+        const existing = await storage.getSharepointConfig();
+        if (existing) {
+          input.password = existing.password;
+        }
+      }
+
+      const config = await storage.upsertSharepointConfig(input);
+      res.json({ ...config, password: "••••••••" });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });
+      }
+      throw err;
+    }
+  });
+
+  app.post(api.sharepoint.testConnection.path, async (req, res) => {
+    const config = await storage.getSharepointConfig();
+    if (!config) {
+      return res.json({ success: false, message: "No SharePoint configuration saved yet." });
+    }
+    const result = await testSharepointConnection(config);
+    res.json(result);
+  });
+
+  app.post(api.sharepoint.sync.path, async (req, res) => {
+    const config = await storage.getSharepointConfig();
+    if (!config) {
+      return res.status(400).json({ message: "No SharePoint configuration found. Please save your settings first." });
+    }
+
+    let synced = 0;
+    let failed = 0;
+
+    try {
+      // Remove previously synced SharePoint docs before re-syncing
+      await storage.deleteDocumentsBySource("sharepoint");
+
+      const items = await fetchLibraryItems(config);
+      console.log(`SharePoint sync: found ${items.length} files in "${config.libraryName}"`);
+
+      for (const item of items) {
+        try {
+          const docWithContent = await fetchDocumentContent(config, item);
+          await storage.createDocument({
+            title: docWithContent.title,
+            content: docWithContent.content,
+            type: "document",
+            url: docWithContent.url,
+            source: "sharepoint",
+          });
+          synced++;
+        } catch (err: any) {
+          console.error(`Failed to sync "${item.title}":`, err?.message);
+          failed++;
+        }
+      }
+
+      await storage.updateSharepointSyncTime();
+
+      res.json({
+        synced,
+        failed,
+        message: `Sync complete. ${synced} document${synced !== 1 ? 's' : ''} imported${failed > 0 ? `, ${failed} failed` : ''}.`,
+      });
+
+    } catch (error: any) {
+      console.error("SharePoint sync error:", error);
+      res.status(500).json({ message: error?.message || "Sync failed. Check your SharePoint configuration." });
+    }
+  });
+
+  // ─── Seed demo data (only if no documents at all) ────────────────────────
+
   async function seedDatabase() {
     const docs = await storage.getDocuments();
     if (docs.length === 0) {
@@ -105,25 +197,27 @@ export async function registerRoutes(
         title: "IT Support Policy",
         content: "All employees must change their passwords every 90 days. For technical support, create a ticket at support.company.com or call extension 5555. Standard response time is 24 hours.",
         type: "document",
-        url: "/sites/it/policies/support.docx"
+        url: "http://sharepoint.company.com/sites/it/policies/support.docx",
+        source: "manual",
       });
       await storage.createDocument({
         title: "Q4 Marketing Plan",
         content: "The Q4 marketing strategy focuses on social media engagement and email campaigns. Key dates: Nov 1st - Holiday Campaign Launch, Dec 15th - Year End Review. Budget allocated: $50,000.",
         type: "document",
-        url: "/sites/marketing/2024/q4-plan.pptx"
+        url: "http://sharepoint.company.com/sites/marketing/2024/q4-plan.pptx",
+        source: "manual",
       });
       await storage.createDocument({
         title: "Project Alpha Tasks",
         content: "1. UI Design Phase - Status: In Progress, Owner: Sarah\n2. Database Migration - Status: Pending, Owner: Mike\n3. User Testing - Status: Not Started",
         type: "list-item",
-        url: "/sites/projects/lists/tasks/123"
+        url: "http://sharepoint.company.com/sites/projects/lists/tasks/123",
+        source: "manual",
       });
       console.log('Seeded database with example SharePoint content');
     }
   }
 
-  // Run seeder
   seedDatabase();
 
   return httpServer;

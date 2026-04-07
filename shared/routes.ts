@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertDocumentSchema, documents, messages } from './schema';
+import { insertDocumentSchema, insertSharepointConfigSchema, documents, messages, sharepointConfigs } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -66,6 +66,40 @@ export const api = {
       },
     },
   },
+  sharepoint: {
+    getConfig: {
+      method: 'GET' as const,
+      path: '/api/sharepoint/config',
+      responses: {
+        200: z.custom<typeof sharepointConfigs.$inferSelect | null>(),
+      },
+    },
+    saveConfig: {
+      method: 'POST' as const,
+      path: '/api/sharepoint/config',
+      input: insertSharepointConfigSchema,
+      responses: {
+        200: z.custom<typeof sharepointConfigs.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    testConnection: {
+      method: 'POST' as const,
+      path: '/api/sharepoint/test',
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+      },
+    },
+    sync: {
+      method: 'POST' as const,
+      path: '/api/sharepoint/sync',
+      responses: {
+        200: z.object({ synced: z.number(), failed: z.number(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        500: errorSchemas.internal,
+      },
+    },
+  },
 };
 
 export function buildUrl(path: string, params?: Record<string, string | number>): string {
@@ -82,3 +116,4 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 
 export type DocumentInput = z.infer<typeof api.documents.create.input>;
 export type ChatInput = z.infer<typeof api.chat.send.input>;
+export type SharepointConfigInput = z.infer<typeof api.sharepoint.saveConfig.input>;
