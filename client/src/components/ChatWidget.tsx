@@ -12,24 +12,43 @@ export function ChatWidget() {
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
 
+  // Notify the parent SharePoint page whether the widget is active (expanded)
+  // so it can toggle pointer-events on the iframe and avoid blocking page clicks.
+  const notifyParent = (event: "chatbot:open" | "chatbot:close") => {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage(event, "*");
+      }
+    } catch {
+      // Silently ignore cross-origin errors in non-iframe contexts
+    }
+  };
+
   const handleOpen = () => {
     setIsOpen(true);
     setIsMinimized(false);
+    notifyParent("chatbot:open");
   };
 
   const handleClose = () => {
-    // Close the widget and clear the session
     setIsOpen(false);
     setIsMinimized(false);
     setMessages([]);
     setIsPending(false);
     setIsError(false);
-    // Clear DB records silently in the background
     apiRequest("DELETE", "/api/chat").catch(() => {});
+    notifyParent("chatbot:close");
   };
 
-  const handleMinimize = () => setIsMinimized(true);
-  const handleMaximize = () => setIsMinimized(false);
+  const handleMinimize = () => {
+    setIsMinimized(true);
+    notifyParent("chatbot:close"); // pill is small — let SharePoint clicks through
+  };
+
+  const handleMaximize = () => {
+    setIsMinimized(false);
+    notifyParent("chatbot:open");
+  };
 
   const handleSend = async (message: string) => {
     const userMsg: Message = {
