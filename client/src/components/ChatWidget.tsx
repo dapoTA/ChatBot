@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import Chat from "@/pages/Chat";
+import type { Message } from "@shared/schema";
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isPending, setIsPending] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   const handleOpen = () => {
     setIsOpen(true);
@@ -13,16 +18,41 @@ export function ChatWidget() {
   };
 
   const handleClose = () => {
+    // Close the widget and clear the session
     setIsOpen(false);
     setIsMinimized(false);
+    setMessages([]);
+    setIsPending(false);
+    setIsError(false);
+    // Clear DB records silently in the background
+    apiRequest("DELETE", "/api/chat").catch(() => {});
   };
 
-  const handleMinimize = () => {
-    setIsMinimized(true);
-  };
+  const handleMinimize = () => setIsMinimized(true);
+  const handleMaximize = () => setIsMinimized(false);
 
-  const handleMaximize = () => {
-    setIsMinimized(false);
+  const handleSend = async (message: string) => {
+    const userMsg: Message = {
+      id: Date.now(),
+      role: "user",
+      content: message,
+      createdAt: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setIsPending(true);
+    setIsError(false);
+
+    try {
+      const res = await apiRequest("POST", "/api/chat", { message });
+      if (!res.ok) throw new Error("Failed");
+      const assistantMsg: Message = await res.json();
+      setMessages((prev) => [...prev, assistantMsg]);
+    } catch {
+      setIsError(true);
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -65,8 +95,8 @@ export function ChatWidget() {
             }}
             data-testid="dialog-chat"
           >
-            {/* Minimized pill */}
             {isMinimized ? (
+              /* Minimized pill */
               <div
                 style={{
                   background: "hsl(var(--background))",
@@ -97,70 +127,22 @@ export function ChatWidget() {
                     />
                   </div>
                   <span
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "hsl(var(--foreground))",
-                    }}
+                    style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}
                   >
                     ON-PNT® Assistant
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <button
-                    onClick={handleMaximize}
-                    data-testid="button-maximize"
-                    aria-label="Maximize chat"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "hsl(var(--foreground))",
-                    }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.background = "hsl(var(--muted))")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
+                  <IconButton onClick={handleMaximize} label="Maximize" testId="button-maximize">
                     <Maximize2 style={{ width: 14, height: 14 }} />
-                  </button>
-                  <button
-                    onClick={handleClose}
-                    data-testid="button-close-minimized"
-                    aria-label="Close chat"
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      border: "none",
-                      background: "transparent",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "hsl(var(--foreground))",
-                    }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.background = "hsl(var(--muted))")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.background = "transparent")
-                    }
-                  >
+                  </IconButton>
+                  <IconButton onClick={handleClose} label="Close" testId="button-close-minimized">
                     <X style={{ width: 14, height: 14 }} />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             ) : (
-              /* Full expanded dialog */
+              /* Expanded dialog */
               <div
                 style={{
                   background: "hsl(var(--background))",
@@ -199,81 +181,32 @@ export function ChatWidget() {
                       }}
                     >
                       <MessageCircle
-                        style={{
-                          width: 14,
-                          height: 14,
-                          color: "hsl(var(--primary-foreground))",
-                        }}
+                        style={{ width: 14, height: 14, color: "hsl(var(--primary-foreground))" }}
                       />
                     </div>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: "hsl(var(--foreground))",
-                      }}
-                    >
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}>
                       ON-PNT® Assistant
                     </span>
                   </div>
-
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <button
-                      onClick={handleMinimize}
-                      data-testid="button-minimize"
-                      aria-label="Minimize chat"
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "hsl(var(--foreground))",
-                      }}
-                      onMouseOver={(e) =>
-                        (e.currentTarget.style.background = "hsl(var(--muted))")
-                      }
-                      onMouseOut={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
+                    <IconButton onClick={handleMinimize} label="Minimize" testId="button-minimize">
                       <Minus style={{ width: 14, height: 14 }} />
-                    </button>
-                    <button
-                      onClick={handleClose}
-                      data-testid="button-close-chat"
-                      aria-label="Close chat"
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "hsl(var(--foreground))",
-                      }}
-                      onMouseOver={(e) =>
-                        (e.currentTarget.style.background = "hsl(var(--muted))")
-                      }
-                      onMouseOut={(e) =>
-                        (e.currentTarget.style.background = "transparent")
-                      }
-                    >
+                    </IconButton>
+                    <IconButton onClick={handleClose} label="Close and clear chat" testId="button-close-chat">
                       <X style={{ width: 14, height: 14 }} />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
 
-                {/* Chat Body */}
+                {/* Chat Body — always mounted so state survives minimize */}
                 <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                  <Chat isWidget />
+                  <Chat
+                    isWidget
+                    messages={messages}
+                    isPending={isPending}
+                    isError={isError}
+                    onSend={handleSend}
+                  />
                 </div>
               </div>
             )}
@@ -281,5 +214,45 @@ export function ChatWidget() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+// Reusable icon button with hover effect
+function IconButton({
+  onClick,
+  label,
+  testId,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  testId: string;
+  children: React.ReactNode;
+}) {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      data-testid={testId}
+      aria-label={label}
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        border: "none",
+        background: hovered ? "hsl(var(--muted))" : "transparent",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "hsl(var(--foreground))",
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </button>
   );
 }

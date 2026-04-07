@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useChatHistory, useSendMessage } from "@/hooks/use-chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,15 +6,17 @@ import { Send, Bot, User, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import type { Message } from "@shared/schema";
 
 interface ChatProps {
   isWidget?: boolean;
+  messages: Message[];
+  isPending: boolean;
+  isError: boolean;
+  onSend: (message: string) => void;
 }
 
-export default function Chat({ isWidget = false }: ChatProps) {
-  const { data: messages } = useChatHistory();
-  const sendMessage = useSendMessage();
-  
+export default function Chat({ isWidget = false, messages, isPending, isError, onSend }: ChatProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -23,34 +24,45 @@ export default function Chat({ isWidget = false }: ChatProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, sendMessage.isPending]);
+  }, [messages, isPending]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || sendMessage.isPending) return;
-    sendMessage.mutate({ message: input });
+    const trimmed = input.trim();
+    if (!trimmed || isPending) return;
     setInput("");
+    onSend(trimmed);
   };
 
   return (
-    <div className={cn(
-      "flex flex-col bg-background border-border",
-      isWidget 
-        ? "h-full flex-1" 
-        : "h-screen w-full max-w-2xl mx-auto border-l border-r"
-    )}>
-      {/* Header - only show when not a widget */}
+    <div
+      className={cn(
+        "flex flex-col bg-background border-border",
+        isWidget ? "h-full flex-1" : "h-screen w-full max-w-2xl mx-auto border-l border-r"
+      )}
+    >
       {!isWidget && (
         <header className="h-14 border-b border-border bg-background flex items-center px-6 flex-shrink-0">
           <h1 className="text-base font-semibold text-foreground">ON-PNT® Assistant</h1>
         </header>
       )}
 
-      {/* Chat Area */}
       <ScrollArea className="flex-1 overflow-hidden">
         <div className="p-6 space-y-4 flex flex-col">
+          {/* Empty state */}
+          {messages.length === 0 && !isPending && (
+            <div className="flex flex-col items-center justify-center h-40 text-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Ask me anything about your SharePoint documents.
+              </p>
+            </div>
+          )}
+
           <AnimatePresence initial={false}>
-            {messages?.map((msg) => (
+            {messages.map((msg) => (
               <motion.div
                 key={msg.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -65,12 +77,14 @@ export default function Chat({ isWidget = false }: ChatProps) {
                     <Bot className="w-3 h-3 text-primary-foreground" />
                   </div>
                 )}
-                <div className={cn(
-                  "max-w-sm p-3 rounded-lg text-sm leading-relaxed",
-                  msg.role === "user" 
-                    ? "bg-primary text-primary-foreground rounded-br-none" 
-                    : "bg-white dark:bg-secondary text-foreground border border-border rounded-bl-none"
-                )}>
+                <div
+                  className={cn(
+                    "max-w-sm p-3 rounded-lg text-sm leading-relaxed",
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-none"
+                      : "bg-white dark:bg-secondary text-foreground border border-border rounded-bl-none"
+                  )}
+                >
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{msg.content}</ReactMarkdown>
@@ -88,7 +102,8 @@ export default function Chat({ isWidget = false }: ChatProps) {
             ))}
           </AnimatePresence>
 
-          {sendMessage.isPending && (
+          {/* Typing indicator */}
+          {isPending && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -97,13 +112,16 @@ export default function Chat({ isWidget = false }: ChatProps) {
               <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Bot className="w-3 h-3 text-primary-foreground" />
               </div>
-              <div className="p-3 bg-white dark:bg-secondary border border-border text-foreground rounded-lg rounded-bl-none flex items-center gap-2">
-                <span className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"></span>
+              <div className="p-3 bg-white dark:bg-secondary border border-border text-foreground rounded-lg rounded-bl-none flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:0ms]" />
+                <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 bg-foreground/40 rounded-full animate-bounce [animation-delay:300ms]" />
               </div>
             </motion.div>
           )}
 
-          {sendMessage.isError && (
+          {/* Error state */}
+          {isError && (
             <div className="flex gap-3 justify-start">
               <div className="w-6 h-6 rounded-full bg-destructive flex items-center justify-center flex-shrink-0 mt-0.5">
                 <AlertCircle className="w-3 h-3 text-white" />
@@ -113,12 +131,12 @@ export default function Chat({ isWidget = false }: ChatProps) {
               </div>
             </div>
           )}
-          
+
           <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
-      {/* Input Area */}
+      {/* Input */}
       <div className="border-t border-border bg-background p-4 flex-shrink-0">
         <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
           <Input
@@ -126,13 +144,13 @@ export default function Chat({ isWidget = false }: ChatProps) {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message..."
             className="flex-1 py-2 text-sm rounded-full border-border focus-visible:ring-primary/20 bg-card"
-            disabled={sendMessage.isPending}
+            disabled={isPending}
             data-testid="input-message"
           />
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={!input.trim() || sendMessage.isPending}
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!input.trim() || isPending}
             className="rounded-full h-8 w-8 flex-shrink-0"
             data-testid="button-send"
           >
