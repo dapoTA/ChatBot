@@ -47,8 +47,9 @@ export interface SPDocumentWithContent extends SPDocument {
 
 // Fetch list of files from a SharePoint document library
 export async function fetchLibraryItems(config: SharepointConfig): Promise<SPDocument[]> {
+  const siteUrl = normaliseSiteUrl(config.siteUrl);
   const apiUrl =
-    `${config.siteUrl}/_api/web/lists/getbytitle('${encodeURIComponent(config.libraryName)}')/items` +
+    `${siteUrl}/_api/web/lists/getbytitle('${encodeURIComponent(config.libraryName)}')/items` +
     `?$select=Title,FileLeafRef,FileRef,File_x0020_Type&$filter=FSObjType eq 0&$top=500`;
 
   const res = await ntlmRequest({
@@ -78,7 +79,7 @@ export async function fetchLibraryItems(config: SharepointConfig): Promise<SPDoc
       const fileName: string = item.FileLeafRef;
       const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
       const title = item.Title || fileName.replace(/\.[^.]+$/, "");
-      const fullUrl = `${config.siteUrl}${fileRef}`;
+      const fullUrl = `${siteUrl}${fileRef}`;
       return { title, url: fullUrl, fileRef, extension: ext };
     });
 }
@@ -137,14 +138,21 @@ export async function fetchDocumentContent(
   return { ...doc, content };
 }
 
+// Normalise site URL — strip trailing slash, ensure no double-slashes
+export function normaliseSiteUrl(raw: string): string {
+  return raw.trim().replace(/\/+$/, "");
+}
+
 // Test the SharePoint connection
 export async function testSharepointConnection(
   config: SharepointConfig
 ): Promise<{ success: boolean; message: string }> {
+  const siteUrl = normaliseSiteUrl(config.siteUrl);
+  const apiUrl = `${siteUrl}/_api/web/title`;
+
   try {
-    const apiUrl = `${config.siteUrl}/_api/web/title`;
     const res = await ntlmRequest({
-      ...buildNtlmOptions(apiUrl, config),
+      ...buildNtlmOptions(apiUrl, { ...config, siteUrl }),
       headers: { Accept: "application/json;odata=verbose" },
     });
 
@@ -155,33 +163,42 @@ export async function testSharepointConnection(
         title = data?.d?.Title ?? data?.value ?? "SharePoint";
       } catch {}
       return { success: true, message: `Connected to "${title}"` };
-    } else if (res.statusCode === 401) {
+    } else if (res.statusCode === 401 || res.statusCode === 403) {
       return {
         success: false,
-        message: "Authentication failed. Check your domain, username, and password.",
+        message: `Authentication failed (HTTP ${res.statusCode}). Check your domain, username, and password.`,
       };
     } else if (res.statusCode === 404) {
       return {
         success: false,
-        message: "Site not found. Check your SharePoint site URL.",
+        message: `Site not found (HTTP 404). Tried: ${apiUrl}\n\nCommon fixes:\n• Remove any trailing slash from the URL\n• Use the root site URL only (e.g. http://sharepoint.company.com/sites/MySite)\n• Do not include page names or document library paths`,
       };
     } else {
-      return { success: false, message: `Server returned status ${res.statusCode}.` };
+      return {
+        success: false,
+        message: `Server returned HTTP ${res.statusCode}. Tried: ${apiUrl}`,
+      };
     }
   } catch (err: any) {
     const msg: string = err?.message ?? "Unknown error";
     if (msg.includes("ECONNREFUSED")) {
       return {
         success: false,
-        message: "Connection refused. Make sure SharePoint is reachable from this server.",
+        message: `Connection refused at ${siteUrl}. Make sure SharePoint is reachable from this server and the port is correct.`,
       };
     }
     if (msg.includes("ENOTFOUND")) {
       return {
         success: false,
-        message: "Host not found. Check your SharePoint site URL.",
+        message: `Host not found: "${siteUrl}". Check the hostname is correct and DNS is resolving on this server.`,
       };
     }
-    return { success: false, message: `Connection error: ${msg}` };
+    if (msg.includes("certificate") || msg.includes("SSL") || msg.includes("self signed")) {
+      return {
+        success: false,
+        message: `SSL certificate error. If your SharePoint uses a self-signed certificate, enable "Allow self-signed certificates" in the connection settings.`,
+      };
+    }
+    return { success: false, message: `Connection error: ${msg}\n\nTried: ${apiUrl}` };
   }
 }
