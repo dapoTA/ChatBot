@@ -28,6 +28,7 @@ import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/s
 const appearanceSchema = insertAppSettingsSchema.extend({
   assistantName: z.string().min(1, "Assistant name is required"),
   welcomeMessage: z.string().min(1, "Welcome message is required"),
+  notFoundMessage: z.string().min(1, "Not-found message is required"),
 });
 type AppearanceValues = z.infer<typeof appearanceSchema>;
 
@@ -48,7 +49,7 @@ export default function Settings() {
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
-  const { data: appSettingsData } = useQuery<{ assistantName: string; welcomeMessage: string }>({
+  const { data: appSettingsData } = useQuery<{ assistantName: string; welcomeMessage: string; notFoundMessage: string }>({
     queryKey: ["/api/settings"],
   });
 
@@ -60,9 +61,17 @@ export default function Settings() {
 
   const appearanceForm = useForm<AppearanceValues>({
     resolver: zodResolver(appearanceSchema),
-    defaultValues: { assistantName: "ON-PNT® Assistant", welcomeMessage: "Ask me anything about your SharePoint documents." },
+    defaultValues: {
+      assistantName: "ON-PNT® Assistant",
+      welcomeMessage: "Ask me anything about your SharePoint documents.",
+      notFoundMessage: "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
+    },
     values: appSettingsData
-      ? { assistantName: appSettingsData.assistantName, welcomeMessage: appSettingsData.welcomeMessage }
+      ? {
+          assistantName: appSettingsData.assistantName,
+          welcomeMessage: appSettingsData.welcomeMessage,
+          notFoundMessage: appSettingsData.notFoundMessage,
+        }
       : undefined,
   });
 
@@ -196,6 +205,24 @@ export default function Settings() {
               )}
               <p className="text-xs text-muted-foreground">
                 Shown when the chat is opened with no prior messages
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="notFoundMessage">Not Found Message</Label>
+              <Textarea
+                id="notFoundMessage"
+                placeholder="I'm sorry, I couldn't find relevant information for your request..."
+                rows={3}
+                data-testid="input-not-found-message"
+                className="resize-none"
+                {...appearanceForm.register("notFoundMessage")}
+              />
+              {appearanceForm.formState.errors.notFoundMessage && (
+                <p className="text-xs text-destructive">{appearanceForm.formState.errors.notFoundMessage.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Returned by the assistant when no relevant documents are found for a query
               </p>
             </div>
 
