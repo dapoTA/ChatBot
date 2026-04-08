@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { insertAppSettingsSchema } from "@shared/schema";
 import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint";
 import OpenAI from "openai";
 
@@ -95,6 +96,29 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     } catch (error) {
       console.error('Chat error:', error);
       res.status(500).json({ message: 'Failed to process chat message' });
+    }
+  });
+
+  // ─── App settings routes (public — no credentials exposed) ──────────────────
+
+  app.get("/api/settings", async (req, res) => {
+    const settings = await storage.getAppSettings();
+    res.json({
+      assistantName: settings?.assistantName ?? "ON-PNT® Assistant",
+      welcomeMessage: settings?.welcomeMessage ?? "Ask me anything about your SharePoint documents.",
+    });
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const input = insertAppSettingsSchema.parse(req.body);
+      const saved = await storage.upsertAppSettings(input);
+      res.json(saved);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      throw err;
     }
   });
 

@@ -1,9 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import Chat from "@/pages/Chat";
 import type { Message } from "@shared/schema";
+
+const DEFAULTS = {
+  assistantName: "ON-PNT® Assistant",
+  welcomeMessage: "Ask me anything about your SharePoint documents.",
+};
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +17,13 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
+
+  const { data: settings } = useQuery<{ assistantName: string; welcomeMessage: string }>({
+    queryKey: ["/api/settings"],
+  });
+
+  const assistantName = settings?.assistantName || DEFAULTS.assistantName;
+  const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
 
   // Notify the parent SharePoint page whether the widget is active (expanded)
   // so it can toggle pointer-events on the iframe and avoid blocking page clicks.
@@ -148,7 +161,7 @@ export function ChatWidget() {
                   <span
                     style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}
                   >
-                    ON-PNT® Assistant
+                    {assistantName}
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -204,7 +217,7 @@ export function ChatWidget() {
                       />
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}>
-                      ON-PNT® Assistant
+                      {assistantName}
                     </span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -225,6 +238,7 @@ export function ChatWidget() {
                     isPending={isPending}
                     isError={isError}
                     onSend={handleSend}
+                    welcomeMessage={welcomeMessage}
                   />
                 </div>
               </div>

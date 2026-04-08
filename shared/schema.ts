@@ -31,6 +31,17 @@ export const sharepointConfigs = pgTable("sharepoint_configs", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const appSettings = pgTable("app_settings", {
+  id: serial("id").primaryKey(),
+  assistantName: text("assistant_name").notNull().default("ON-PNT® Assistant"),
+  welcomeMessage: text("welcome_message").notNull().default("Ask me anything about your SharePoint documents."),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({ id: true, updatedAt: true });
+export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
+
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertSharepointConfigSchema = createInsertSchema(sharepointConfigs).omit({

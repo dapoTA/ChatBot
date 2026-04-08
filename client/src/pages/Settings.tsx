@@ -7,6 +7,7 @@ import { queryClient } from "@/lib/queryClient";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -16,33 +17,70 @@ import {
   RefreshCw,
   Wifi,
   Save,
-  FileText,
   Clock,
   AlertTriangle,
 } from "lucide-react";
 import type { SharepointConfig } from "@shared/schema";
-import { insertSharepointConfigSchema } from "@shared/schema";
+import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
 
-const formSchema = insertSharepointConfigSchema.extend({
+// ─── Appearance form ────────────────────────────────────────────────────────
+
+const appearanceSchema = insertAppSettingsSchema.extend({
+  assistantName: z.string().min(1, "Assistant name is required"),
+  welcomeMessage: z.string().min(1, "Welcome message is required"),
+});
+type AppearanceValues = z.infer<typeof appearanceSchema>;
+
+// ─── SharePoint form ─────────────────────────────────────────────────────────
+
+const sharepointSchema = insertSharepointConfigSchema.extend({
   siteUrl: z.string().url("Must be a valid URL (e.g. http://sharepoint.company.com/sites/mysite)"),
   domain: z.string().min(1, "Domain is required"),
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
   libraryName: z.string().min(1, "Library name is required"),
 });
-
-type FormValues = z.infer<typeof formSchema>;
+type SharepointValues = z.infer<typeof sharepointSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const { data: config, isLoading } = useQuery<SharepointConfig | null>({
+  // ─── Fetch current settings ────────────────────────────────────────────────
+
+  const { data: appSettingsData } = useQuery<{ assistantName: string; welcomeMessage: string }>({
+    queryKey: ["/api/settings"],
+  });
+
+  const { data: config } = useQuery<SharepointConfig | null>({
     queryKey: ["/api/sharepoint/config"],
   });
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+  // ─── Appearance form ───────────────────────────────────────────────────────
+
+  const appearanceForm = useForm<AppearanceValues>({
+    resolver: zodResolver(appearanceSchema),
+    defaultValues: { assistantName: "ON-PNT® Assistant", welcomeMessage: "Ask me anything about your SharePoint documents." },
+    values: appSettingsData
+      ? { assistantName: appSettingsData.assistantName, welcomeMessage: appSettingsData.welcomeMessage }
+      : undefined,
+  });
+
+  const saveAppearance = useMutation({
+    mutationFn: (data: AppearanceValues) => apiRequest("POST", "/api/settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Appearance saved", description: "Widget name and welcome message updated." });
+    },
+    onError: () => {
+      toast({ title: "Save failed", description: "Could not save appearance settings.", variant: "destructive" });
+    },
+  });
+
+  // ─── SharePoint form ───────────────────────────────────────────────────────
+
+  const sharepointForm = useForm<SharepointValues>({
+    resolver: zodResolver(sharepointSchema),
     defaultValues: {
       siteUrl: "",
       domain: "",
@@ -63,9 +101,8 @@ export default function Settings() {
       : undefined,
   });
 
-  const saveConfig = useMutation({
-    mutationFn: (data: FormValues) =>
-      apiRequest("POST", "/api/sharepoint/config", data),
+  const saveSharepoint = useMutation({
+    mutationFn: (data: SharepointValues) => apiRequest("POST", "/api/sharepoint/config", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sharepoint/config"] });
       toast({ title: "Settings saved", description: "SharePoint configuration has been saved." });
@@ -98,7 +135,7 @@ export default function Settings() {
         variant: result.synced > 0 ? "default" : "destructive",
       });
     },
-    onError: async (err: any) => {
+    onError: () => {
       toast({
         title: "Sync failed",
         description: "Could not sync documents. Check your SharePoint configuration.",
@@ -107,31 +144,73 @@ export default function Settings() {
     },
   });
 
-  const onSubmit = (data: FormValues) => {
-    saveConfig.mutate(data);
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-6 py-10">
+      <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
 
         {/* Page Header */}
-        <div className="mb-8">
+        <div>
           <h1 className="text-2xl font-semibold text-foreground" data-testid="text-settings-title">
-            SharePoint Settings
+            Administration
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Connect to your on-premises SharePoint 2019 document library.
-            Documents are synced into the chatbot's knowledge base.
+            Configure the chat widget appearance and SharePoint document library connection.
           </p>
         </div>
 
-        {/* Config Form */}
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
+        {/* ── Widget Appearance ───────────────────────────────────────────── */}
+        <form onSubmit={appearanceForm.handleSubmit((d) => saveAppearance.mutate(d))}>
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-              Connection Details
+              Widget Appearance
+            </h2>
+
+            <div className="space-y-1">
+              <Label htmlFor="assistantName">Assistant Name</Label>
+              <Input
+                id="assistantName"
+                placeholder="ON-PNT® Assistant"
+                data-testid="input-assistant-name"
+                {...appearanceForm.register("assistantName")}
+              />
+              {appearanceForm.formState.errors.assistantName && (
+                <p className="text-xs text-destructive">{appearanceForm.formState.errors.assistantName.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Displayed in the chat header and trigger button tooltip
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="welcomeMessage">Welcome Message</Label>
+              <Textarea
+                id="welcomeMessage"
+                placeholder="Ask me anything about your SharePoint documents."
+                rows={3}
+                data-testid="input-welcome-message"
+                className="resize-none"
+                {...appearanceForm.register("welcomeMessage")}
+              />
+              {appearanceForm.formState.errors.welcomeMessage && (
+                <p className="text-xs text-destructive">{appearanceForm.formState.errors.welcomeMessage.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Shown when the chat is opened with no prior messages
+              </p>
+            </div>
+
+            <Button type="submit" disabled={saveAppearance.isPending} data-testid="button-save-appearance">
+              <Save className="w-4 h-4 mr-2" />
+              {saveAppearance.isPending ? "Saving…" : "Save Appearance"}
+            </Button>
+          </div>
+        </form>
+
+        {/* ── SharePoint Connection ───────────────────────────────────────── */}
+        <form onSubmit={sharepointForm.handleSubmit((d) => saveSharepoint.mutate(d))} className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              SharePoint Connection
             </h2>
 
             <div className="space-y-1">
@@ -140,10 +219,10 @@ export default function Settings() {
                 id="siteUrl"
                 placeholder="http://sharepoint.company.com/sites/mysite"
                 data-testid="input-site-url"
-                {...form.register("siteUrl")}
+                {...sharepointForm.register("siteUrl")}
               />
-              {form.formState.errors.siteUrl && (
-                <p className="text-xs text-destructive">{form.formState.errors.siteUrl.message}</p>
+              {sharepointForm.formState.errors.siteUrl && (
+                <p className="text-xs text-destructive">{sharepointForm.formState.errors.siteUrl.message}</p>
               )}
               <p className="text-xs text-muted-foreground">Full URL to your SharePoint site (not just the root)</p>
             </div>
@@ -155,10 +234,10 @@ export default function Settings() {
                   id="domain"
                   placeholder="COMPANY"
                   data-testid="input-domain"
-                  {...form.register("domain")}
+                  {...sharepointForm.register("domain")}
                 />
-                {form.formState.errors.domain && (
-                  <p className="text-xs text-destructive">{form.formState.errors.domain.message}</p>
+                {sharepointForm.formState.errors.domain && (
+                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.domain.message}</p>
                 )}
               </div>
               <div className="space-y-1">
@@ -167,10 +246,10 @@ export default function Settings() {
                   id="libraryName"
                   placeholder="Documents"
                   data-testid="input-library-name"
-                  {...form.register("libraryName")}
+                  {...sharepointForm.register("libraryName")}
                 />
-                {form.formState.errors.libraryName && (
-                  <p className="text-xs text-destructive">{form.formState.errors.libraryName.message}</p>
+                {sharepointForm.formState.errors.libraryName && (
+                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.libraryName.message}</p>
                 )}
               </div>
             </div>
@@ -183,10 +262,10 @@ export default function Settings() {
                   placeholder="svc_account"
                   autoComplete="username"
                   data-testid="input-username"
-                  {...form.register("username")}
+                  {...sharepointForm.register("username")}
                 />
-                {form.formState.errors.username && (
-                  <p className="text-xs text-destructive">{form.formState.errors.username.message}</p>
+                {sharepointForm.formState.errors.username && (
+                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.username.message}</p>
                 )}
               </div>
               <div className="space-y-1">
@@ -196,10 +275,10 @@ export default function Settings() {
                   type="password"
                   autoComplete="current-password"
                   data-testid="input-password"
-                  {...form.register("password")}
+                  {...sharepointForm.register("password")}
                 />
-                {form.formState.errors.password && (
-                  <p className="text-xs text-destructive">{form.formState.errors.password.message}</p>
+                {sharepointForm.formState.errors.password && (
+                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.password.message}</p>
                 )}
               </div>
             </div>
@@ -212,24 +291,18 @@ export default function Settings() {
                 </p>
               </div>
               <Switch
-                checked={form.watch("allowSelfSigned")}
-                onCheckedChange={(v) => form.setValue("allowSelfSigned", v)}
+                checked={sharepointForm.watch("allowSelfSigned")}
+                onCheckedChange={(v) => sharepointForm.setValue("allowSelfSigned", v)}
                 data-testid="switch-self-signed"
               />
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center gap-3">
-            <Button
-              type="submit"
-              disabled={saveConfig.isPending}
-              data-testid="button-save-config"
-            >
+            <Button type="submit" disabled={saveSharepoint.isPending} data-testid="button-save-config">
               <Save className="w-4 h-4 mr-2" />
-              {saveConfig.isPending ? "Saving…" : "Save Settings"}
+              {saveSharepoint.isPending ? "Saving…" : "Save Connection"}
             </Button>
-
             <Button
               type="button"
               variant="outline"
@@ -242,7 +315,6 @@ export default function Settings() {
             </Button>
           </div>
 
-          {/* Test result */}
           {testResult && (
             <div
               className={`flex items-start gap-3 rounded-lg px-4 py-3 text-sm border ${
@@ -262,8 +334,8 @@ export default function Settings() {
           )}
         </form>
 
-        {/* Sync Section */}
-        <div className="mt-8 rounded-xl border border-border bg-card p-6">
+        {/* ── Document Sync ────────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Sync Document Library</h2>
@@ -288,7 +360,6 @@ export default function Settings() {
               {syncDocuments.isPending ? "Syncing…" : "Sync Now"}
             </Button>
           </div>
-
           {!config && (
             <div className="flex items-center gap-2 mt-4 text-xs text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-3.5 h-3.5" />
@@ -298,11 +369,12 @@ export default function Settings() {
         </div>
 
         {/* On-premises notice */}
-        <div className="mt-6 rounded-lg bg-muted/40 border border-border px-4 py-3 text-xs text-muted-foreground">
+        <div className="rounded-lg bg-muted/40 border border-border px-4 py-3 text-xs text-muted-foreground">
           <strong className="text-foreground">On-premises deployment:</strong> This application must be hosted on a server
           that has direct network access to your SharePoint 2019 environment. Authentication uses NTLM with
           your Active Directory credentials.
         </div>
+
       </div>
     </div>
   );

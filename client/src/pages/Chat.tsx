@@ -14,9 +14,10 @@ interface ChatProps {
   isPending: boolean;
   isError: boolean;
   onSend: (message: string) => void;
+  welcomeMessage?: string;
 }
 
-export default function Chat({ isWidget = false, messages, isPending, isError, onSend }: ChatProps) {
+export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }: ChatProps) {
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +57,7 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                 <Bot className="w-5 h-5 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">
-                Ask me anything about your SharePoint documents.
+                {welcomeMessage}
               </p>
             </div>
           )}
