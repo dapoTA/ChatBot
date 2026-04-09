@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type DocumentInput } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 
 export function useDocuments() {
@@ -18,7 +18,7 @@ export function useCreateDocument() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (data: DocumentInput) => {
+    mutationFn: async (data) => {
       const res = await fetch(api.documents.create.path, {
         method: api.documents.create.method,
         headers: { "Content-Type": "application/json" },
@@ -56,10 +56,10 @@ export function useDeleteDocument() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id) => {
       const url = buildUrl(api.documents.delete.path, { id });
       const res = await fetch(url, { method: api.documents.delete.method });
-      
+
       if (!res.ok) {
         if (res.status === 404) {
           throw new Error("Document not found");

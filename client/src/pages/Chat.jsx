@@ -6,20 +6,10 @@ import { Send, Bot, User, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
-import type { Message } from "@shared/schema";
 
-interface ChatProps {
-  isWidget?: boolean;
-  messages: Message[];
-  isPending: boolean;
-  isError: boolean;
-  onSend: (message: string) => void;
-  welcomeMessage?: string;
-}
-
-export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }: ChatProps) {
+export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }) {
   const [input, setInput] = useState("");
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -27,7 +17,7 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
     }
   }, [messages, isPending]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = input.trim();
     if (!trimmed || isPending) return;

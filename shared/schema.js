@@ -1,6 +1,5 @@
 import { pgTable, text, serial, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
@@ -40,9 +39,6 @@ export const appSettings = pgTable("app_settings", {
 });
 
 export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({ id: true, updatedAt: true });
-export type AppSettings = typeof appSettings.$inferSelect;
-export type InsertAppSettings = z.infer<typeof insertAppSettingsSchema>;
-
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertSharepointConfigSchema = createInsertSchema(sharepointConfigs).omit({
@@ -51,13 +47,3 @@ export const insertSharepointConfigSchema = createInsertSchema(sharepointConfigs
   updatedAt: true,
 });
 export const upsertSharepointConfigSchema = insertSharepointConfigSchema;
-
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-export type Message = typeof messages.$inferSelect;
-export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type SharepointConfig = typeof sharepointConfigs.$inferSelect;
-export type InsertSharepointConfig = z.infer<typeof insertSharepointConfigSchema>;
-
-export type CreateDocumentRequest = InsertDocument;
-export type ChatRequest = { message: string };

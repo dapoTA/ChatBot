@@ -1,6 +1,4 @@
 import { useDocuments, useDeleteDocument } from "@/hooks/use-documents";
-import { DocumentDialog } from "@/components/DocumentDialog";
-import { Sidebar } from "@/components/Sidebar";
 import {
   Table,
   TableBody,
@@ -31,10 +29,9 @@ export default function DataSources() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      <Sidebar />
-      <main className="flex-1 pl-64">
+      <main className="flex-1">
         <div className="p-8 max-w-7xl mx-auto space-y-8">
-          
+
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Data Sources</h1>
@@ -42,7 +39,6 @@ export default function DataSources() {
                 Manage indexed SharePoint documents and list items available to the chatbot.
               </p>
             </div>
-            <DocumentDialog />
           </div>
 
           <div className="bg-card rounded-2xl shadow-sm border border-border overflow-hidden">
@@ -72,10 +68,10 @@ export default function DataSources() {
                             <span className="font-semibold text-foreground group-hover:text-primary transition-colors">
                               {doc.title}
                             </span>
-                            <a 
-                              href={doc.url} 
-                              target="_blank" 
-                              rel="noreferrer" 
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noreferrer"
                               className="text-xs text-muted-foreground hover:underline flex items-center gap-1 mt-0.5"
                             >
                               {doc.url} <ExternalLink className="w-3 h-3" />
@@ -107,7 +103,7 @@ export default function DataSources() {
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
+                              <AlertDialogAction
                                 onClick={() => deleteDocument.mutate(doc.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >

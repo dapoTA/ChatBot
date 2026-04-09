@@ -20,7 +20,6 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
-import type { SharepointConfig } from "@shared/schema";
 import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
 
 // ─── Appearance form ────────────────────────────────────────────────────────
@@ -30,7 +29,6 @@ const appearanceSchema = insertAppSettingsSchema.extend({
   welcomeMessage: z.string().min(1, "Welcome message is required"),
   notFoundMessage: z.string().min(1, "Not-found message is required"),
 });
-type AppearanceValues = z.infer<typeof appearanceSchema>;
 
 // ─── SharePoint form ─────────────────────────────────────────────────────────
 
@@ -41,25 +39,24 @@ const sharepointSchema = insertSharepointConfigSchema.extend({
   password: z.string().min(1, "Password is required"),
   libraryName: z.string().min(1, "Library name is required"),
 });
-type SharepointValues = z.infer<typeof sharepointSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [testResult, setTestResult] = useState(null);
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
-  const { data: appSettingsData } = useQuery<{ assistantName: string; welcomeMessage: string; notFoundMessage: string }>({
+  const { data: appSettingsData } = useQuery({
     queryKey: ["/api/settings"],
   });
 
-  const { data: config } = useQuery<SharepointConfig | null>({
+  const { data: config } = useQuery({
     queryKey: ["/api/sharepoint/config"],
   });
 
   // ─── Appearance form ───────────────────────────────────────────────────────
 
-  const appearanceForm = useForm<AppearanceValues>({
+  const appearanceForm = useForm({
     resolver: zodResolver(appearanceSchema),
     defaultValues: {
       assistantName: "ON-PNT® Assistant",
@@ -76,7 +73,7 @@ export default function Settings() {
   });
 
   const saveAppearance = useMutation({
-    mutationFn: (data: AppearanceValues) => apiRequest("POST", "/api/settings", data),
+    mutationFn: (data) => apiRequest("POST", "/api/settings", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
       toast({ title: "Appearance saved", description: "Widget name and welcome message updated." });
@@ -88,7 +85,7 @@ export default function Settings() {
 
   // ─── SharePoint form ───────────────────────────────────────────────────────
 
-  const sharepointForm = useForm<SharepointValues>({
+  const sharepointForm = useForm({
     resolver: zodResolver(sharepointSchema),
     defaultValues: {
       siteUrl: "",
@@ -111,7 +108,7 @@ export default function Settings() {
   });
 
   const saveSharepoint = useMutation({
-    mutationFn: (data: SharepointValues) => apiRequest("POST", "/api/sharepoint/config", data),
+    mutationFn: (data) => apiRequest("POST", "/api/sharepoint/config", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sharepoint/config"] });
       toast({ title: "Settings saved", description: "SharePoint configuration has been saved." });

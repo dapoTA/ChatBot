@@ -1,10 +1,9 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { createServer } from "http";
+import { storage } from "./storage.js";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertAppSettingsSchema } from "@shared/schema";
-import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint";
+import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint.js";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -12,10 +11,7 @@ const openai = new OpenAI({
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
 });
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
+export async function registerRoutes(httpServer, app) {
 
   // ─── Document routes ────────────────────────────────────────────────────────
 
@@ -133,7 +129,6 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
   app.get(api.sharepoint.getConfig.path, async (req, res) => {
     const config = await storage.getSharepointConfig();
     if (config) {
-      // Mask password before sending to frontend
       res.json({ ...config, password: config.password ? "••••••••" : "" });
     } else {
       res.json(null);
@@ -144,7 +139,6 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     try {
       const input = api.sharepoint.saveConfig.input.parse(req.body);
 
-      // If password is the masked placeholder, keep the existing password
       if (input.password === "••••••••") {
         const existing = await storage.getSharepointConfig();
         if (existing) {
@@ -181,7 +175,6 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     let failed = 0;
 
     try {
-      // Remove previously synced SharePoint docs before re-syncing
       await storage.deleteDocumentsBySource("sharepoint");
 
       const items = await fetchLibraryItems(config);
@@ -198,7 +191,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
             source: "sharepoint",
           });
           synced++;
-        } catch (err: any) {
+        } catch (err) {
           console.error(`Failed to sync "${item.title}":`, err?.message);
           failed++;
         }
@@ -212,7 +205,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
         message: `Sync complete. ${synced} document${synced !== 1 ? 's' : ''} imported${failed > 0 ? `, ${failed} failed` : ''}.`,
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("SharePoint sync error:", error);
       res.status(500).json({ message: error?.message || "Sync failed. Check your SharePoint configuration." });
     }

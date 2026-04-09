@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import Chat from "@/pages/Chat";
-import type { Message } from "@shared/schema";
 
 const DEFAULTS = {
   assistantName: "ON-PNT® Assistant",
@@ -14,20 +13,18 @@ const DEFAULTS = {
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState([]);
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const { data: settings } = useQuery<{ assistantName: string; welcomeMessage: string }>({
+  const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
   });
 
   const assistantName = settings?.assistantName || DEFAULTS.assistantName;
   const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
 
-  // Notify the parent SharePoint page whether the widget is active (expanded)
-  // so it can toggle pointer-events on the iframe and avoid blocking page clicks.
-  const notifyParent = (event: "chatbot:open" | "chatbot:close") => {
+  const notifyParent = (event) => {
     try {
       if (window.parent && window.parent !== window) {
         window.parent.postMessage(event, "*");
@@ -55,7 +52,7 @@ export function ChatWidget() {
 
   const handleMinimize = () => {
     setIsMinimized(true);
-    notifyParent("chatbot:close"); // pill is small — let SharePoint clicks through
+    notifyParent("chatbot:close");
   };
 
   const handleMaximize = () => {
@@ -63,8 +60,8 @@ export function ChatWidget() {
     notifyParent("chatbot:open");
   };
 
-  const handleSend = async (message: string) => {
-    const userMsg: Message = {
+  const handleSend = async (message) => {
+    const userMsg = {
       id: Date.now(),
       role: "user",
       content: message,
@@ -78,7 +75,7 @@ export function ChatWidget() {
     try {
       const res = await apiRequest("POST", "/api/chat", { message });
       if (!res.ok) throw new Error("Failed");
-      const assistantMsg: Message = await res.json();
+      const assistantMsg = await res.json();
       setMessages((prev) => [...prev, assistantMsg]);
     } catch {
       setIsError(true);
@@ -230,7 +227,7 @@ export function ChatWidget() {
                   </div>
                 </div>
 
-                {/* Chat Body — always mounted so state survives minimize */}
+                {/* Chat Body */}
                 <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   <Chat
                     isWidget
@@ -250,18 +247,7 @@ export function ChatWidget() {
   );
 }
 
-// Reusable icon button with hover effect
-function IconButton({
-  onClick,
-  label,
-  testId,
-  children,
-}: {
-  onClick: () => void;
-  label: string;
-  testId: string;
-  children: React.ReactNode;
-}) {
+function IconButton({ onClick, label, testId, children }) {
   const [hovered, setHovered] = useState(false);
 
   return (
