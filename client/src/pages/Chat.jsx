@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
+// rehypeRaw allows the AI to emit styled HTML (e.g. <span style="...">).
+// Content comes from the OpenAI API, not directly from end-users.
 
 export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }) {
   const [input, setInput] = useState("");
