@@ -78,7 +78,15 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                 >
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      a: ({ href, children }) => (
+                        <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                      )
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
                     </div>
                   ) : (
                     <p>{msg.content}</p>

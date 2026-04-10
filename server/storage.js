@@ -1,5 +1,5 @@
 import { db } from "./db.js";
-import { documents, messages, sharepointConfigs, appSettings } from "@shared/schema";
+import { documents, messages, sharepointConfigs, appSettings } from "../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 
 export class DatabaseStorage {

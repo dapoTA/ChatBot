@@ -1,15 +1,27 @@
 import { createServer } from "http";
 import { storage } from "./storage.js";
-import { api } from "@shared/routes";
+import { api } from "../shared/routes.js";
 import { z } from "zod";
-import { insertAppSettingsSchema } from "@shared/schema";
+import { insertAppSettingsSchema } from "../shared/schema.js";
 import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint.js";
-import OpenAI from "openai";
+//import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
-});
+console.log("DEPLOYMENT:", process.env.AZURE_OPENAI_DEPLOYMENT);
+console.log("API_VERSION:", process.env.AZURE_OPENAI_API_VERSION);
+console.log("ENDPOINT:", process.env.AZURE_OPENAI_ENDPOINT);
+
+//const openai = new OpenAI({
+ // apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+ // baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+//});
+
+//import { AzureOpenAI } from "openai";
+
+//const openai = new AzureOpenAI({
+ // apiKey: process.env.AZURE_OPENAI_API_KEY,
+ // endpoint: process.env.AZURE_OPENAI_ENDPOINT,      // https://techassurancetest01.openai.azure.com
+ // apiVersion: process.env.AZURE_OPENAI_API_VERSION, // e.g. "2024-12-01-preview"
+//});
 
 export async function registerRoutes(httpServer, app) {
 
@@ -82,13 +94,46 @@ Rules:
 Available documents:
 ${context || "No documents have been loaded yet. Please sync your SharePoint library in the Settings page."}`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-5.1",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
-        ],
-      });
+    //const completion = await openai.chat.completions.create({
+     // model: process.env.AZURE_OPENAI_DEPLOYMENT,
+      //messages: [
+      //  { role: "system", content: systemPrompt },
+      //  { role: "user", content: message },
+      //],
+    //});
+
+                  const endpoint = new URL(
+                `/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}/chat/completions`,
+                process.env.AZURE_OPENAI_ENDPOINT
+              );
+
+              endpoint.searchParams.set("api-version", process.env.AZURE_OPENAI_API_VERSION);
+
+              console.log("Azure endpoint:", endpoint.toString());
+
+              const response = await fetch(endpoint.toString(), {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "api-key": process.env.AZURE_OPENAI_API_KEY,
+                },
+                body: JSON.stringify({
+                  messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: message },
+                  ],
+                }),
+              });
+
+              const raw = await response.text();
+              console.log("Azure status:", response.status);
+              console.log("Azure raw response:", raw);
+
+              if (!response.ok) {
+                throw new Error(`Azure OpenAI error: ${response.status} ${raw}`);
+              }
+
+              const completion = JSON.parse(raw);
 
       const aiResponse = completion.choices[0].message.content || "I couldn't generate a response.";
       const savedMessage = await storage.createMessage({ role: 'assistant', content: aiResponse });

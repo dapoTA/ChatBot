@@ -1,3 +1,6 @@
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+
 async function ntlmRequest(options) {
   const httpntlm = await import("httpntlm");
   const client = httpntlm.default || httpntlm;
@@ -59,7 +62,7 @@ export async function fetchLibraryItems(config) {
       const fileName = item.FileLeafRef;
       const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
       const title = item.Title || fileName.replace(/\.[^.]+$/, "");
-      const fullUrl = `${siteUrl}${fileRef}`;
+      const fullUrl = `${new URL(siteUrl).origin}${fileRef}`;
       return { title, url: fullUrl, fileRef, extension: ext };
     });
 }
@@ -78,11 +81,12 @@ async function extractTextContent(buffer, extension, fileName) {
       return (result.value ?? "").slice(0, 8000);
     }
 
-    case "pdf": {
-      const pdfParse = await import("pdf-parse");
-      const data = await (pdfParse.default || pdfParse)(buffer);
-      return (data.text ?? "").slice(0, 8000);
-    }
+case "pdf": {
+  const { PDFParse } = require("pdf-parse");
+  const parser = new PDFParse({ data: buffer });
+  const result = await parser.getText();
+  return (result.text ?? "").slice(0, 8000);
+}
 
     default:
       return `[File: ${fileName} — content extraction not supported for .${extension} files]`;
