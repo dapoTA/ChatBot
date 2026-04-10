@@ -28,6 +28,7 @@ const appearanceSchema = insertAppSettingsSchema.extend({
   assistantName: z.string().min(1, "Assistant name is required"),
   welcomeMessage: z.string().min(1, "Welcome message is required"),
   notFoundMessage: z.string().min(1, "Not-found message is required"),
+  customInstructions: z.string().optional().nullable(),
 });
 
 // ─── SharePoint form ─────────────────────────────────────────────────────────
@@ -62,12 +63,14 @@ export default function Settings() {
       assistantName: "ON-PNT® Assistant",
       welcomeMessage: "Ask me anything about your SharePoint documents.",
       notFoundMessage: "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
+      customInstructions: "",
     },
     values: appSettingsData
       ? {
           assistantName: appSettingsData.assistantName,
           welcomeMessage: appSettingsData.welcomeMessage,
           notFoundMessage: appSettingsData.notFoundMessage,
+          customInstructions: appSettingsData.customInstructions ?? "",
         }
       : undefined,
   });
@@ -220,6 +223,21 @@ export default function Settings() {
               )}
               <p className="text-xs text-muted-foreground">
                 Returned by the assistant when no relevant documents are found for a query
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="customInstructions">Custom Instructions</Label>
+              <Textarea
+                id="customInstructions"
+                placeholder={`Describe how the assistant should behave. For example:\n- Always respond in a formal, professional tone\n- When citing documents, include the section or page number if available\n- This assistant serves the Facilities Management department\n- Prioritise safety-related documents when relevant\n- If asked about pricing, always note that figures may have changed`}
+                rows={8}
+                data-testid="input-custom-instructions"
+                className="resize-y font-mono text-xs"
+                {...appearanceForm.register("customInstructions")}
+              />
+              <p className="text-xs text-muted-foreground">
+                Free-form instructions that shape how the assistant responds — its tone, focus, persona, and rules. Applied to every conversation.
               </p>
             </div>
 

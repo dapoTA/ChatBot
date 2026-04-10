@@ -35,6 +35,7 @@ export const appSettings = pgTable("app_settings", {
   assistantName: text("assistant_name").notNull().default("ON-PNT® Assistant"),
   welcomeMessage: text("welcome_message").notNull().default("Ask me anything about your SharePoint documents."),
   notFoundMessage: text("not_found_message").notNull().default("I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator."),
+  customInstructions: text("custom_instructions"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

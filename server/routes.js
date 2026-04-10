@@ -73,13 +73,14 @@ export async function registerRoutes(httpServer, app) {
       const appCfg = await storage.getAppSettings();
       const notFoundMessage = appCfg?.notFoundMessage
         ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.";
+      const customInstructions = appCfg?.customInstructions?.trim() || null;
 
       const context = docs.map(d =>
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
       ).join('\n\n---\n\n');
 
       const systemPrompt = `You are a helpful SharePoint assistant for this organization.
-
+${customInstructions ? `\nOwner instructions (follow these precisely):\n${customInstructions}\n` : ''}
 Your job is to answer questions based ONLY on the documents provided below.
 If the answer is not found in the documents, respond with EXACTLY this message (do not modify it):
 "${notFoundMessage}"
@@ -153,6 +154,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       assistantName: settings?.assistantName ?? "ON-PNT® Assistant",
       welcomeMessage: settings?.welcomeMessage ?? "Ask me anything about your SharePoint documents.",
       notFoundMessage: settings?.notFoundMessage ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
+      customInstructions: settings?.customInstructions ?? "",
     });
   });
 
