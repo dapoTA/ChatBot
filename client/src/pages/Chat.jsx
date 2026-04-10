@@ -6,6 +6,7 @@ import { Send, Bot, User, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
+import rehypeRaw from "rehype-raw";
 
 export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }) {
   const [input, setInput] = useState("");
@@ -79,6 +80,7 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown
+                    rehypePlugins={[rehypeRaw]}
                     components={{
                       a: ({ href, children }) => (
                         <a href={href} target="_blank" rel="noreferrer">{children}</a>
