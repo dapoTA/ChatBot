@@ -6,3 +6,9 @@ id = "OP7RcSmAWv2kUjDQuJqV2"
 uri = "file://gap_analysis.csv"
 type = "table"
 title = "Chatbot Gap Analysis — Spec vs. Current Build"
+
+[[outputs]]
+id = "ZYU5Ro5xxgVfgXDwE_G2t"
+uri = "file://gap_analysis.xlsx"
+type = "table"
+title = "Chatbot Gap Analysis — Spec vs. Current Build"
