@@ -310,7 +310,7 @@ export default function Settings() {
                 {aiParamsForm.formState.errors.temperature && (
                   <p className="text-xs text-destructive">{aiParamsForm.formState.errors.temperature.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Range: 0–2 · 0 = focused &amp; deterministic, 2 = creative &amp; varied</p>
+                <p className="text-xs text-muted-foreground">Range: 0–2 · 0 = focused &amp; deterministic, 2 = creative &amp; varied · Neutral (no impact): 1.0</p>
               </div>
 
               <div className="space-y-1">
@@ -325,7 +325,7 @@ export default function Settings() {
                 {aiParamsForm.formState.errors.topP && (
                   <p className="text-xs text-destructive">{aiParamsForm.formState.errors.topP.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Range: 0–1 · 1 = all tokens, 0.1 = only most likely tokens</p>
+                <p className="text-xs text-muted-foreground">Range: 0–1 · 1 = all tokens considered, 0.1 = only most likely tokens · Neutral (no impact): 1.0</p>
               </div>
             </div>
 
@@ -341,7 +341,7 @@ export default function Settings() {
               {aiParamsForm.formState.errors.maxTokens && (
                 <p className="text-xs text-destructive">{aiParamsForm.formState.errors.maxTokens.message}</p>
               )}
-              <p className="text-xs text-muted-foreground">Range: 100–4096 · Maximum length of each AI response (1 token ≈ 4 characters)</p>
+              <p className="text-xs text-muted-foreground">Range: 100–4096 · Maximum length of each AI response (1 token ≈ 4 characters) · Neutral (no impact): 4096</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -357,7 +357,7 @@ export default function Settings() {
                 {aiParamsForm.formState.errors.frequencyPenalty && (
                   <p className="text-xs text-destructive">{aiParamsForm.formState.errors.frequencyPenalty.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = less word repetition in responses</p>
+                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = less word repetition in responses · Neutral (no impact): 0.0</p>
               </div>
 
               <div className="space-y-1">
@@ -372,7 +372,7 @@ export default function Settings() {
                 {aiParamsForm.formState.errors.presencePenalty && (
                   <p className="text-xs text-destructive">{aiParamsForm.formState.errors.presencePenalty.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = encourages covering new topics</p>
+                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = encourages covering new topics · Neutral (no impact): 0.0</p>
               </div>
             </div>
 
