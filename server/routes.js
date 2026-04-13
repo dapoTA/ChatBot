@@ -128,7 +128,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
                     { role: "system", content: systemPrompt },
                     { role: "user", content: message },
                   ],
-                  temperature: 0,
+                  temperature: appCfg?.temperature ?? 0,
+                  top_p: appCfg?.topP ?? 1,
+                  max_tokens: appCfg?.maxTokens ?? 1500,
+                  frequency_penalty: appCfg?.frequencyPenalty ?? 0,
+                  presence_penalty: appCfg?.presencePenalty ?? 0,
                 }),
               });
 
@@ -161,6 +165,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       welcomeMessage: settings?.welcomeMessage ?? "Ask me anything about your SharePoint documents.",
       notFoundMessage: settings?.notFoundMessage ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
       customInstructions: settings?.customInstructions ?? "",
+      temperature: settings?.temperature ?? 0,
+      topP: settings?.topP ?? 1,
+      maxTokens: settings?.maxTokens ?? 1500,
+      frequencyPenalty: settings?.frequencyPenalty ?? 0,
+      presencePenalty: settings?.presencePenalty ?? 0,
     });
   });
 

@@ -31,6 +31,16 @@ const appearanceSchema = insertAppSettingsSchema.extend({
   customInstructions: z.string().optional().nullable(),
 });
 
+// ─── AI Parameters form ───────────────────────────────────────────────────────
+
+const aiParamsSchema = z.object({
+  temperature: z.coerce.number().min(0).max(2),
+  topP: z.coerce.number().min(0).max(1),
+  maxTokens: z.coerce.number().int().min(100).max(4096),
+  frequencyPenalty: z.coerce.number().min(0).max(2),
+  presencePenalty: z.coerce.number().min(0).max(2),
+});
+
 // ─── SharePoint form ─────────────────────────────────────────────────────────
 
 const sharepointSchema = insertSharepointConfigSchema.extend({
@@ -83,6 +93,33 @@ export default function Settings() {
     },
     onError: () => {
       toast({ title: "Save failed", description: "Could not save appearance settings.", variant: "destructive" });
+    },
+  });
+
+  // ─── AI Parameters form ────────────────────────────────────────────────────
+
+  const aiParamsForm = useForm({
+    resolver: zodResolver(aiParamsSchema),
+    defaultValues: { temperature: 0, topP: 1, maxTokens: 1500, frequencyPenalty: 0, presencePenalty: 0 },
+    values: appSettingsData
+      ? {
+          temperature: appSettingsData.temperature ?? 0,
+          topP: appSettingsData.topP ?? 1,
+          maxTokens: appSettingsData.maxTokens ?? 1500,
+          frequencyPenalty: appSettingsData.frequencyPenalty ?? 0,
+          presencePenalty: appSettingsData.presencePenalty ?? 0,
+        }
+      : undefined,
+  });
+
+  const saveAiParams = useMutation({
+    mutationFn: (data) => apiRequest("POST", "/api/settings", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "AI parameters saved", description: "Model settings updated successfully." });
+    },
+    onError: () => {
+      toast({ title: "Save failed", description: "Could not save AI parameters.", variant: "destructive" });
     },
   });
 
@@ -244,6 +281,104 @@ export default function Settings() {
             <Button type="submit" disabled={saveAppearance.isPending} data-testid="button-save-appearance">
               <Save className="w-4 h-4 mr-2" />
               {saveAppearance.isPending ? "Saving…" : "Save Appearance"}
+            </Button>
+          </div>
+        </form>
+
+        {/* ── AI Model Parameters ─────────────────────────────────────────── */}
+        <form onSubmit={aiParamsForm.handleSubmit((d) => saveAiParams.mutate(d))}>
+          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                AI Model Parameters
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Control how the AI model generates responses. Changes apply to all new conversations.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="temperature">Temperature</Label>
+                <Input
+                  id="temperature"
+                  type="number"
+                  min="0" max="2" step="0.1"
+                  data-testid="input-temperature"
+                  {...aiParamsForm.register("temperature")}
+                />
+                {aiParamsForm.formState.errors.temperature && (
+                  <p className="text-xs text-destructive">{aiParamsForm.formState.errors.temperature.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Range: 0–2 · 0 = focused &amp; deterministic, 2 = creative &amp; varied</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="topP">Top P</Label>
+                <Input
+                  id="topP"
+                  type="number"
+                  min="0" max="1" step="0.05"
+                  data-testid="input-top-p"
+                  {...aiParamsForm.register("topP")}
+                />
+                {aiParamsForm.formState.errors.topP && (
+                  <p className="text-xs text-destructive">{aiParamsForm.formState.errors.topP.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Range: 0–1 · 1 = all tokens, 0.1 = only most likely tokens</p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="maxTokens">Max Tokens</Label>
+              <Input
+                id="maxTokens"
+                type="number"
+                min="100" max="4096" step="100"
+                data-testid="input-max-tokens"
+                {...aiParamsForm.register("maxTokens")}
+              />
+              {aiParamsForm.formState.errors.maxTokens && (
+                <p className="text-xs text-destructive">{aiParamsForm.formState.errors.maxTokens.message}</p>
+              )}
+              <p className="text-xs text-muted-foreground">Range: 100–4096 · Maximum length of each AI response (1 token ≈ 4 characters)</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="frequencyPenalty">Frequency Penalty</Label>
+                <Input
+                  id="frequencyPenalty"
+                  type="number"
+                  min="0" max="2" step="0.1"
+                  data-testid="input-frequency-penalty"
+                  {...aiParamsForm.register("frequencyPenalty")}
+                />
+                {aiParamsForm.formState.errors.frequencyPenalty && (
+                  <p className="text-xs text-destructive">{aiParamsForm.formState.errors.frequencyPenalty.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = less word repetition in responses</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="presencePenalty">Presence Penalty</Label>
+                <Input
+                  id="presencePenalty"
+                  type="number"
+                  min="0" max="2" step="0.1"
+                  data-testid="input-presence-penalty"
+                  {...aiParamsForm.register("presencePenalty")}
+                />
+                {aiParamsForm.formState.errors.presencePenalty && (
+                  <p className="text-xs text-destructive">{aiParamsForm.formState.errors.presencePenalty.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Range: 0–2 · Higher = encourages covering new topics</p>
+              </div>
+            </div>
+
+            <Button type="submit" disabled={saveAiParams.isPending} data-testid="button-save-ai-params">
+              <Save className="w-4 h-4 mr-2" />
+              {saveAiParams.isPending ? "Saving…" : "Save AI Parameters"}
             </Button>
           </div>
         </form>

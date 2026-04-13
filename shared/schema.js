@@ -1,4 +1,4 @@
-import { pgTable, text, serial, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, real, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const documents = pgTable("documents", {
@@ -36,6 +36,11 @@ export const appSettings = pgTable("app_settings", {
   welcomeMessage: text("welcome_message").notNull().default("Ask me anything about your SharePoint documents."),
   notFoundMessage: text("not_found_message").notNull().default("I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator."),
   customInstructions: text("custom_instructions"),
+  temperature: real("temperature").notNull().default(0),
+  topP: real("top_p").notNull().default(1),
+  maxTokens: integer("max_tokens").notNull().default(1500),
+  frequencyPenalty: real("frequency_penalty").notNull().default(0),
+  presencePenalty: real("presence_penalty").notNull().default(0),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
