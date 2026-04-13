@@ -88,10 +88,14 @@ If the answer is not found in the documents, respond with EXACTLY this message (
 
 Rules:
 - If you cannot find a direct answer in the documents, use the exact not-found message above. Do not guess, infer, or supplement with outside knowledge.
-- Always cite the specific document(s) you used to answer the question.
-- When referencing a document, include a Markdown link using the exact URL provided in the source: [Document Title](URL)
-- If multiple documents are relevant, cite all of them.
 - Keep answers clear and concise. Use bullet points where helpful.
+- Every response that uses document content MUST end with a sources section in this exact format:
+
+---
+**Sources:**
+- [Document Title](URL)
+
+List every document you drew from. Use the exact title and URL from the source. This section is mandatory — never omit it.
 
 Available documents:
 ${context || "No documents have been loaded yet. Please sync your SharePoint library in the Settings page."}`;
