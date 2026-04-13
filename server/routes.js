@@ -79,18 +79,19 @@ export async function registerRoutes(httpServer, app) {
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
       ).join('\n\n---\n\n');
 
-      const systemPrompt = `You are a helpful SharePoint assistant for this organization.
+      const systemPrompt = `You are a SharePoint document assistant for this organization.
 ${customInstructions ? `\nOwner instructions (follow these precisely):\n${customInstructions}\n` : ''}
-Your job is to answer questions based ONLY on the documents provided below.
-If the answer is not found in the documents, respond with EXACTLY this message (do not modify it):
+You may ONLY answer using information found in the documents listed below. You have no outside knowledge and must not draw on anything beyond what is explicitly written in those documents — not your training data, not general knowledge, not assumptions.
+
+If the answer is not found in the documents, respond with EXACTLY this message (do not modify it, do not add to it):
 "${notFoundMessage}"
 
 Rules:
+- If you cannot find a direct answer in the documents, use the exact not-found message above. Do not guess, infer, or supplement with outside knowledge.
 - Always cite the specific document(s) you used to answer the question.
 - When referencing a document, include a Markdown link using the exact URL provided in the source: [Document Title](URL)
 - If multiple documents are relevant, cite all of them.
 - Keep answers clear and concise. Use bullet points where helpful.
-- Never make up information not present in the documents.
 
 Available documents:
 ${context || "No documents have been loaded yet. Please sync your SharePoint library in the Settings page."}`;
@@ -123,6 +124,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
                     { role: "system", content: systemPrompt },
                     { role: "user", content: message },
                   ],
+                  temperature: 0,
                 }),
               });
 
