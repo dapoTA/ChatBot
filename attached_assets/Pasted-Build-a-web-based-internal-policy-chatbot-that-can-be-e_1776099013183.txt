@@ -1,0 +1,133 @@
+Build a web-based internal policy chatbot that can be embedded inside SharePoint 2019 using a Content Editor Web Part. The chatbot will serve Technical Assurance staff and answer questions based only on approved company documents and administrator-defined instructions. It must not use general knowledge to answer policy questions when the answer is not found in the approved source content.
+Core purpose:
+Create a chatbot that retrieves and answers questions from a SharePoint document library that serves as the approved knowledge base. The knowledge base may include PDFs, Word documents, Excel files, PowerPoints, SharePoint page text, and plain text content. The chatbot should support topics such as HR policy, PTO, and other internal policy or procedural questions, but it should not be hardcoded to HR only. It must work from whatever approved documents and custom instructions are provided.
+Functional requirements:
+1.	The chatbot must ingest approved files and page content from a SharePoint 2019 document library.
+2.	Supported source types must include PDF, DOCX, XLSX, PPTX, SharePoint page text, and TXT.
+3.	The chatbot must use retrieval-augmented generation so answers are grounded only in the approved knowledge base and the administrator’s custom instructions.
+4.	The chatbot must not answer from model general knowledge if the answer is not found in the approved documents or configured instructions.
+5.	If the answer is not found, the chatbot must respond exactly:
+“I could not find that in the policy documents - please contact an administrator”
+6.	Each answer must include citations showing the source document name and page number where possible. For Excel or SharePoint page content, cite the file/page name and section, sheet, or cell range when page numbers do not exist.
+7.	The chatbot should provide both:
+o	a plain-language summary answer
+o	a short quoted excerpt from the source when helpful
+8.	The chatbot should maintain session-only memory so users can ask follow-up questions during the same session, but no long-term user memory should persist.
+9.	All users will receive the same answers. There is no role-based access logic in phase one.
+10.	No user login is required in phase one.
+11.	The solution must be embeddable in SharePoint 2019 via a Content Editor Web Part, ideally using an iframe or lightweight embedded script approach that works within SharePoint 2019 limitations.
+Knowledge base and ingestion requirements:
+1.	Connect to a designated SharePoint 2019 document library as the source of truth.
+2.	Support simple file upload and replacement through that SharePoint library rather than building a separate document management system.
+3.	Detect added, replaced, or updated files and refresh the chatbot’s searchable index accordingly.
+4.	Extract text from:
+o	PDFs
+o	Word documents
+o	Excel spreadsheets
+o	PowerPoint files
+o	SharePoint page content
+o	plain text files
+5.	Chunk content in a way that preserves useful citation information such as file name, page number, section heading, slide number, worksheet name, or SharePoint page title.
+6.	Store embeddings and chunk metadata in a vector database suitable for semantic search.
+7.	Preserve source metadata so answers can always reference where the information came from.
+Instruction layer:
+1.	Include an administrator-editable system instruction area that acts like a customized GPT instruction layer.
+2.	These instructions must control tone, scope, fallback behavior, answer format, and any organization-specific rules.
+3.	The instruction layer must be applied consistently to every response.
+4.	Provide an easy configuration file or admin UI field where these instructions can be updated without changing application code.
+Model and AI requirements:
+1.	Use ChatGPT via the OpenAI API.
+2.	Use embeddings plus semantic retrieval over the approved knowledge base.
+3.	Restrict final answers to retrieved source material plus configured admin instructions.
+4.	Prompt the model to avoid guessing, avoid policy interpretation beyond the source text, and clearly state when information is not found.
+5.	Prefer concise, accurate answers in plain language.
+6.	Return supporting citations with every answer.
+Security and hosting requirements:
+1.	The application must not train on company data.
+2.	Hosting must be US-only.
+3.	Documents and embeddings must be stored securely.
+4.	API keys and secrets must be stored in environment variables, not hardcoded.
+5.	Log errors and basic usage events, but do not store sensitive conversation history beyond what is required for session functionality in phase one.
+UI requirements:
+1.	Build a simple chat interface suitable for employees asking policy questions.
+2.	The UI should show:
+o	a question input
+o	answer text
+o	citations
+o	a note when the answer includes a direct quote
+3.	The UI should support follow-up questions during the same session.
+4.	The UI should be clean, lightweight, and easy to embed inside SharePoint 2019.
+5.	Include a loading state and graceful error handling.
+6.	If the answer cannot be found, show the required fallback message clearly.
+Suggested architecture:
+1.	Frontend:
+o	lightweight web app suitable for embedding in SharePoint 2019
+2.	Backend:
+o	API service to handle ingestion, retrieval, prompt assembly, and chat responses
+3.	Ingestion pipeline:
+o	read documents from SharePoint document library
+o	extract text and metadata
+o	chunk content
+o	generate embeddings
+o	store in vector database
+4.	Retrieval pipeline:
+o	accept user query
+o	retrieve top relevant chunks
+o	assemble prompt with admin instructions and retrieved citations
+o	send to OpenAI ChatGPT API
+o	return grounded answer with citations
+5.	Session memory:
+o	temporary per-session conversation context only
+6.	Deployment:
+o	hosted endpoint that can be embedded in SharePoint 2019 Content Editor Web Part
+Preferred implementation guidance:
+1.	Use a stack Replit can support reliably, such as:
+o	frontend: React or simple HTML/JS
+o	backend: Node.js/Express or Python/FastAPI
+2.	Use a vector store that is practical for Replit and scalable enough for internal policy documents.
+3.	Build the app so the SharePoint library connection, admin instructions, fallback text, and OpenAI API key are all configurable.
+Answer formatting rules for the chatbot:
+1.	Answer in plain language first.
+2.	Keep the answer focused on the question asked.
+3.	Do not invent or infer policy details not present in the source material.
+4.	Include citations at the end of the answer.
+5.	When useful, include a short direct quote from the source.
+6.	If sources conflict, say so and cite both sources rather than choosing one silently.
+7.	If the answer is not found, return exactly:
+“I could not find that in the policy documents - please contact an HR administrator”
+Admin/configuration requirements:
+Please build a simple admin configuration method for:
+1.	SharePoint document library location
+2.	OpenAI API key via environment variable
+3.	Editable custom system instructions
+4.	Fallback response text
+5.	Reindex or refresh action for updated documents
+Deliverables:
+1.	A working chatbot web app
+2.	A documented setup process
+3.	Environment variable documentation
+4.	Instructions for connecting to the SharePoint 2019 document library
+5.	Instructions for embedding the chatbot into a SharePoint 2019 Content Editor Web Part
+6.	Clear notes on limitations, especially around SharePoint 2019 integration and file parsing
+7.	Sample admin instructions and sample fallback behavior
+8.	A recommended folder structure and code comments so the app can be maintained internally
+Important constraints:
+1.	This is an internal company chatbot for staff use.
+2.	It must answer only from approved documents and custom instructions.
+3.	It must not rely on public web content.
+4.	It must not require user login in phase one.
+5.	It must support citations.
+6.	It must be designed for SharePoint 2019 embedding.
+7.	It must use session-only memory.
+8.	It must be hosted in the US and must not train on company data.
+Please generate:
+1.	the application architecture
+2.	the recommended tech stack
+3.	the full project scaffold
+4.	the ingestion workflow
+5.	the chat workflow
+6.	the embedding approach for SharePoint 2019
+7.	setup instructions
+8.	any implementation notes or risks that should be addressed before production
+
+
