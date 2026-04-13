@@ -1,0 +1,316 @@
+"1
+RAMP ON-PNT® Methodology and Training
+There are four (4) major Facilities Asset Management metrics that need to be understood and managed
+within the ON-PNT® Enterprise Portal Solution.
+ Condition Index (CI): Each individual system unit, area or section needs to have a condition
+rating that is measurable. Note: For whole building or entire facility asset management
+programs the System Unit CI can be rolled up to a building or site or portfolio wide SCI (System
+Condition Index), i.e. all roofs or all HVAC building, site or portfolio wide. The SCIs are then
+rolled up to a building or facility or entire portfolio FCI (Facility Condition Index).
+ Useful Life: Every building system should have a known service life and every building type
+should have a defined service life. Roofs, HVAC, elevators, pavements, lighting, interior finishes,
+etc. typically have numerous capital renewals/replacements over the total service life of a
+Facility or Building. The introduction of sustainable defect repair upgrade and
+preventative/predictive maintenance programs can greatly impact the remaining service life of
+the major system groups. The implementation of sustainable programs can extend the life of
+these assets, reduce emergency spend, and minimize the frequency of capital renewals.
+ Total Cost of Ownership: Every building system and every building type has a total cost of
+ownership (TCO) that can be assigned to it. The TCO should include all costs of a building system
+or complete facility, from cradle to grave. The TCO metric can be used to determine and
+compare the overall life cycle costs of a specific facility type or major system group prior to
+purchase, and/or used to evaluate different life extension programs that can lower the overall
+TCO of a major system group or entire facility.
+ Triage Score1: Triage is a French word meaning sorting. The Triage Score uses two performance
+metrics: The Mission Dependency Index (MDI) ranking of buildings and Condition Index (CI)
+referenced above. (The MDI supports and is consistent with all Federal Facility Asset
+Management principles and has been recognized and endorsed by the General Services
+Administration4, the National Academy of Sciences’ National Research Council, the Federal
+Facilities Council and the Association of Higher Education Facility Officers (APPA)). The Triage
+Score provides a quick and credible solution to the complex problem of ranking capital projects
+and repair projects. The Triage Score process also can be used to screen-out projects that should
+be deferred if they have little or no relevance to an organization’s mission.
+
+-- 1 of 8 --
+
+2
+A. FAM (Facilities Asset Management) Industry Standards
+1. CI (Condition Index):
+a. Each roof record/section has a calculated CI, which establishes the Condition of the Roof
+Section. The CI is calculated as follows:
+i. Roof Defect Total Costs/Roof Replace Estimate + Annual CI (aging factor)
+ii. Failed: 10% - 0%
+iii. Very Bad: 36% - 10.01%
+iv. Bad: 55% - 36.01%
+v. Poor: 74% - 55.01%
+vi. Fair: 89% - 74.01%
+vii. Good: 98% - 89.01%
+viii. Excellent: 100% - 98.01%
+b. Failed and Very Bad roofs unrepairable and require replacement. (See definitions sheet)
+2. Life Cycle and Useful Life:
+a. SL (Service Life):
+i. The average Service Life of a roof system, i.e. BUR-A (Built Up Roof-Asphalt and THERM-
+PA (Thermoplastic Adhered) SL=19 Years. Each roof system type has an assigned SL,
+which is based upon national averages.
+b. TSL (Total Service Life):
+i. The total service life of the roof asset, from year built/installed to projected
+replacement.
+ii. TSL-RM (Total Service Life Repairs and Maintenance) The TSL-RM is the total
+service life of the roof asset, from year built/installed to projected replacement,
+assuming current roof repairs and maintenance are completed.
+iii. TSL-RPM (Total Service Life Repairs and Preventative Maintenance) The TSL-
+RPM is the total service life of the roof asset, from year built/installed to
+projected replacement, assuming current roof repairs are completed and
+ongoing bi-annual roof preventative maintenance is performed.
+c. RSL (Remaining Service Life):
+i. RSL (Remaining Service Life): The remaining service life of the roof system
+assessed in relation to current year.
+ii. RSL-RM (Remaining Service Life with current Repairs and Maintenance): The
+Remaining Service Life of roof system assessed in relation to current year
+assuming current roof repairs and maintenance are completed.
+iii. RSL-RPM (Remaining Service Life with Repairs and PM): The Remaining Service
+Life of roof system assessed in relation to current year assuming current roof
+repairs are completed and bi-annual preventative maintenance is implemented.
+3. Total Cost of Ownership (TCO):
+a. Annual TCO-TSL (Annual Total Cost of Ownership- Total Service Life):
+i. The total annual cost of a roof asset/section over the TSL (Total Service Life) is
+calculated by dividing the CRV (Current Replacement Value) + Historical Spend
+(Owner provided repairs, maintenance, emergency costs, if any and if provided)
+
+-- 2 of 8 --
+
+3
+by the TSL. The Annual TCO indicates the annual cost of the roof asset based on
+current assessment assuming no repairs or maintenance are performed to
+extend life.
+b. Annual TCO-TSL-RM (Annual Total Cost of Ownership-Total Service Life Repair and
+Maintained:
+i. The total annual cost of a roof asset/section over the TSL-RM (Total Service Life-
+Repair and Maintained) is calculated by dividing the CRV (Current Replacement
+Value) + Historical Spend (Owner provided repairs, maintenance, emergency
+costs, if any and if provided) + current Defect Repairs + current Maintenance at
+all roof sections by the TSL-RM. The Annual TCO-RM indicates the annual cost of
+the roof asset based on current assessment assuming current defect repairs are
+completed and current maintenance at all roof sections is performed to extend
+life.
+c. Annual TCO-TSL-RPM (Annual Total Cost of Ownership-Total Service Life Repair and
+PM):
+i. The total annual cost of a roof asset/section over the TSL-RPM (Total Service
+Life-Repair and Bi-Annual Preventative Maintenance) is calculated by dividing
+the CRV (Current Replacement Value)+ Historical Spend (Owner provided
+repairs, maintenance, emergency costs, if any and if provided) + current Defect
+Repairs + Ongoing Bi-Annual Preventative Maintenance at all roof sections by
+the TSL-RPM. The Annual TCO-RPM indicates the annual cost of the roof asset
+based on current assessment assuming current defect repairs are completed
+and ongoing bi-annual preventative maintenance is performed at all roof
+sections is performed to extend life.
+4. Triage Score:
+a. The Triage Score is used to prioritize the capital roof replacements and defect repairs
+portfolio wide and by site with budget constraint limits set. The Triage scoring combines
+the CI (Condition Index) percentage with the level of building mission criticality, the MDI
+(Mission Dependency Index) and factors in how far a roof asset is beyond its SL (Service
+Life) should the roof assets have the same Triage Score.
+i. Triage Score: 100-0. 100 = highest ranked roofs; 0 = lowest.
+ii. MDI (Mission Dependency Index): 100-0. 100 = highest raked MC (Mission
+Critical), 60 = middle ranked MD (Mission Dependent), 30 = lowest ranked NMD
+(Non-Mission Dependent).
+iii. CI (Condition Index) percentage: 100-0. 0 = highest ranked Failed roofs; 100 =
+lowest ranked Excellent roofs.
+iv. SL> Tiebreaker: Roofs with same Triage Score are further ranked by giving
+greater priority to roof assets that are furthest beyond their system SL (Service
+Life).
+b. The Triage Score weights the MDI higher than the CI. Approximately 60/40.
+
+-- 3 of 8 --
+
+4
+B. GIS (Geographic Information System):
+a. GIS is used for data collection and for displaying assessment data in a geographical map
+context.
+b. Each site, building, roof section and defect has a latitude and longitude coordinate, which
+can be viewed in GIS ON-PNT® Portal Maps or used to locate data while on site with the ON"
+"1
+Complex Facility Asset Management Made Simple
+ON-PNT RAMP Definitions
+Field Name Field Definition Field Description
+Site Site Indicates name of Site location or Campus, etc...
+Tech Area Technical Area NNSA technical area reference
+MDI Mission Dependency Index Building’s Mission Dependency Index (MC, MD, NMD)
+MDI No Mission Dependency Index Building’s Mission Dependency Index (MC=1, MD=2, NMD=3. if
+blank- MD=2)
+Security Access Security Access Building’s Security Access Level (PPA, LA, PA, MAA.)
+Security Access
+No Security Access Building’s Security Access Level (PPA=1, LA=2, PA=3, MAA=4. If
+blank-LA=2)
+Survey
+Category Survey Category Identifies whether roof survey is a New Survey or a Re-Survey.
+Building No Building Number The Building Number is listed as provided by each Site.
+Building ID Building ID
+The Building ID sets a unique Building ID by concatenating the Site
+acronym and the Building No. (Note: Some sites have the same
+building number and this field allows for setting a unique Building
+ID.
+DD Decommission and
+Demolition
+The Decommission and Demolition Field is a yes/no field
+indicating if this Building is set for demolition. Default is set to
+“No”. Data is provided by the Sites.
+TBA To Be Assessed
+The TBA yes/no field by default is set to “Yes”. If Owner does not
+want Technical Assurance to assess the roof and the building is
+not on the DD List, then TBA will be recorded “No”
+ROOFID_GIS Roof ID Geographic
+Information System
+Unique “Portfolio” wide Roof ID Geographic Information System
+concatenated as follows: Site acronym-Tech Area-Building No-
+Roof Section
+Roof ID Roof Identification Unique “Site” Roof ID based concatenated as follows: Tech Area-
+Building No-Roof Section
+Legacy_ID Incumbents Roof ID Incumbents previously used Roof ID (Not unique)
+Roof Section Roof Section The Roof Section sets a Roof Section ID per each building roof
+area.
+Uniformat Uniformat Code
+All roof records are set to Uniformat Code: B3010 Roof Coverings.
+This is the standard Uniformat Code used for roof systems and
+can be connected to other systems, i.e. Builder, etc...
+Roof System Roof System
+The Roof System provides a roof system acronym, which
+identifies the type of roof system per Roof Section. (See Roof
+System definition sheet)
+Roof System
+Descrip Roof System Description The Roof System Description provides the spelled out name of the
+roof system type.
+Assessor Assessor The Assessor indicates which Technical Assurance field staff
+member assessed the specific roof asset/section.
+Assessment
+Date Assessment Date The Assessment Date lists the date the Roof Assessor selected
+when assessing the roof section.
+SL Service Life The average Service Life of selected roof system
+SF Square Feet The Square Feet of each roof section is recorded and listed.
+
+-- 1 of 8 --
+
+2
+Complex Facility Asset Management Made Simple
+Field Name Field Definition Field Description
+Year Built Year Built
+The Year Built lists the year the roof was originally installed or last
+replaced. (Note: Year Built nomenclature is used for roofs instead
+of year replaced, because the field title can be used for many
+facility systems.)
+Yr Built Est Year Built Estimate Indicates if the roof install year is known and recorded or
+estimated in the field. Yes/No field; Yes=Estimated.
+Difficulty Difficulty Degree of roof replacement work difficulty, Difficult, Normal,
+Easy.
+SF Price Square Foot Price Existing roof system selected is assigned a SF Unit Price
+Roof Replace
+Est Roof Replacement Est The Roof Replacement Estimate is calculated by multiplying the
+SF by the SF Price
+Roof Security
+Mult Roof Security Multiplier
+The Roof Section Multiplier sets a summing multiplier off of the
+Roof Replacement Estimate depending on the level of building
+security access (1-4). Higher the security the higher the multiplier.
+General
+Conditions
+Costs
+General Conditions Costs
+The General Contractor Costs sets a percentage multiplier to the
+Roof Security Multiplier to cover project mobilization and
+demobilization, environmental, lightning protection and other
+contractor project costs not included in roof replace bid amount.
+Roof Small SF
+Mult
+Roof Small Square Feet
+Multiplier
+Roof Sections under 1000 SF are provided an additional
+percentage multiplier set with 3 different amounts; 999-333, 665-
+333, 332-0.
+CRV Current Replacement Value
+The Current Replacement Value is the total roof replacement
+estimate by adding together the Roof Section Multiplier + GC
+Costs + Roof Small SF Multiplier.
+Roof Design-CM
+Fees
+Roof Design and
+Construction Management
+Fees
+The Roof Design and Construction Management Fees sets a
+percentage multiplier based on an average project to the CRV.
+Roof Project
+Budget Roof Project Budget The Roof Project Budget adds the CRV and Roof Design-CM Fees
+to provide a Total Project Budget cost estimate.
+Roof Defects-
+Site Name Roof Defects-Site acronym
+Roof Defects per Site and per roof section are identified,
+quantified, and unit cost estimated. (See Roof Defects definition
+sheet)
+Roof Defects
+Total Cost Roof Defects Total Cost The sum of current roof defect repairs per roof section.
+Maint Maintenance
+The current maintenance costs to be performed on each roof
+section. Current maintenance includes routine maintenance
+cleaning and upkeep, a full and detailed roof inspection, and
+completion of light duty touch up repairs.
+PM-Annual PM Annual
+Annual cost of ongoing roof preventative maintenance performed
+once a year on each roof section per Site. PM includes annual
+routine maintenance cleaning and upkeep, a full and detailed roof
+inspection, and completion of light duty touch up repairs. Some
+time may be available for emergency leak service and light repair
+work with once a year RPM Program, but this could be limited.
+
+-- 2 of 8 --
+
+3
+Complex Facility Asset Management Made Simple
+Field Name Field Definition Field Description
+PM Bi-Annual PM Bi-Annual
+Annual cost of ongoing roof preventative maintenance performed
+twice a year on each roof section per Site. PM includes bi-annual
+routine maintenance cleaning and upkeep, a full and detailed roof
+inspection, and completion of light duty touch up repairs. Bi-
+Annual PM will also afford the Sites to have emergency leak
+service and light repairs performed within the boundaries of the
+RPM Program.
+Historical
+Spend Historical Spend
+Historical spend data provided by building Owner, i.e. historical
+emergency spend, or O&M dollars, etc. (Note: To date we have
+not received this data from the Sites)
+Total RSL-PM
+Bi-Annual
+Total Remaining Service
+Life Preventative
+Maintenance Bi-Annual
+Costs
+The total amount of preventative maintenance cost over the
+remaining service life of the roof assets within the RPM Roof
+Sustainability Program. Provides total amount for B-Annual PM
+over life of roof asset within RPM Program.
+CI Condition Index
+Condition Index is established by dividing the amount of current
+roof defects into the Roof Replace Estimate plus Annual CI age
+percentage * (Current Year-Year Built). The calculation is then
+scaled from 100% Excellent to 0% Failed.
+Condition Condition
+The Condition of each roof section is set by the CI percentage.
+Excellent: New roof, limited maintenance. Good: Like new, no
+repairs and regular maintenance. Fair: Minor repairs and current
+maintenance. Poor: Aged roof with minor to major repairs and
+current maintenance. Bad: Aged and/or deteriorated roof
+requiring major repairs or complete restoration or replacement.
+Very Bad: Replace roof as soon as possible. Failed Replace roof
+now.
+SOW Scope of Work
+The general Scope of Work is set based on the roofs condition.
+(Failed or Very Bad=Replace, Bad=Restore or Replace,
+Poor=Repair, Fair=Repair and Maint, Excellent or Good=Maint.)
+PI Performance Indicator
+The Performance Indicator quickly references condition of roof
+section through color coding. Green-Excellent, Light Green-Good,
+Lightest Green-Fair, Yellow-Poor, Orange-Bad, Light Red/Brown-
+Very Bad, Red-Failed.
+Adjusted TSL-
+RM
+Adjusted Total Service Life-
+Repair"
