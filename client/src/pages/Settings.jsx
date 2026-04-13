@@ -334,7 +334,7 @@ export default function Settings() {
               <Input
                 id="maxTokens"
                 type="number"
-                min="100" max="4096" step="100"
+                min="100" max="4096" step="1"
                 data-testid="input-max-tokens"
                 {...aiParamsForm.register("maxTokens")}
               />
