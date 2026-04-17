@@ -23,26 +23,57 @@ console.log("ENDPOINT:", process.env.AZURE_OPENAI_ENDPOINT);
  // apiVersion: process.env.AZURE_OPENAI_API_VERSION, // e.g. "2024-12-01-preview"
 //});
 
+// ─── Shared style constants ──────────────────────────────────────────────────
+const STYLE_COLORS = [
+  'red','blue','green','orange','purple','black','white','navy','maroon','teal',
+  'darkred','darkblue','brown','pink','gold','gray','grey','silver','crimson',
+  'coral','salmon','indigo','violet','cyan','magenta','lime','olive','turquoise',
+];
+const STYLE_SIZES = {
+  'very large':  'font-size:1.6em;',
+  'extra large': 'font-size:1.6em;',
+  'large text':  'font-size:1.3em;',
+  'large':       'font-size:1.3em;',
+  'small text':  'font-size:0.85em;',
+  'small':       'font-size:0.85em;',
+};
+// Keywords for matching natural language style descriptors
+const _styleKeywords = `bold|italic|underline|very large|extra large|large|small|${STYLE_COLORS.join('|')}`;
+
+// Parses raw custom instructions and returns a global response style object
+// for patterns like "Always respond in bold green".
+// Returns { color, bold, italic, underline, fontSize } or null.
+export function extractGlobalResponseStyle(instructions) {
+  if (!instructions) return null;
+  const re = new RegExp(
+    `\\b(?:respond|answer|write|reply|display|show)\\s+(?:all\\s+(?:answers?|responses?)\\s+)?in\\s+((?:(?:${_styleKeywords})\\s*)+(?:text)?)`,
+    'gi'
+  );
+  let match;
+  while ((match = re.exec(instructions)) !== null) {
+    const desc = match[1].toLowerCase();
+    const bold      = desc.includes('bold');
+    const italic    = desc.includes('italic');
+    const underline = desc.includes('underline');
+    let color = null;
+    for (const c of STYLE_COLORS) { if (desc.includes(c)) { color = c; break; } }
+    let fontSize = null;
+    for (const [label, css] of Object.entries(STYLE_SIZES)) { if (desc.includes(label)) { fontSize = css; break; } }
+    if (bold || italic || underline || color || fontSize) {
+      return { color, bold, italic, underline, fontSize };
+    }
+  }
+  return null;
+}
+
 // Pre-processes custom instructions: detects natural-language style descriptions
 // and rewrites them as explicit HTML the AI copies verbatim.
 function preprocessInstructions(instructions) {
   if (!instructions) return instructions;
 
-  const COLORS = [
-    'red','blue','green','orange','purple','black','white','navy','maroon','teal',
-    'darkred','darkblue','brown','pink','gold','gray','grey','silver','crimson',
-    'coral','salmon','indigo','violet','cyan','magenta','lime','olive','turquoise',
-  ];
+  const COLORS = STYLE_COLORS;
   const colorList = COLORS.join('|');
-
-  const SIZES = {
-    'large text': 'font-size:1.3em;',
-    'large':      'font-size:1.3em;',
-    'small text': 'font-size:0.85em;',
-    'small':      'font-size:0.85em;',
-    'very large': 'font-size:1.6em;',
-    'extra large':'font-size:1.6em;',
-  };
+  const SIZES = STYLE_SIZES;
 
   // Build a combined style string and HTML tag from a plain-language style descriptor
   function buildHtml(text, styleDesc) {
@@ -94,37 +125,8 @@ function preprocessInstructions(instructions) {
     return `exactly this HTML (output it verbatim — never use markdown): ${html}`;
   });
 
-  // Pattern 2: general "respond / answer / write / reply in [style]" without a quoted string
-  // e.g. "Always respond in green" / "Write all answers in bold blue text"
-  const generalRe = new RegExp(
-    `\\b(?:respond|answer|write|reply|state|display|show)\\s+(?:all\\s+(?:answers?|responses?)\\s+)?in\\s+((?:(?:${styleKeywords})\\s*)+(?:text)?)`,
-    'gi'
-  );
-  instructions = instructions.replace(generalRe, (match, styleDesc) => {
-    // Inject an explicit formatting instruction the AI can follow
-    const lower = styleDesc.toLowerCase();
-    const isBold      = lower.includes('bold');
-    const isItalic    = lower.includes('italic');
-    const isUnderline = lower.includes('underline');
-    let color = null;
-    for (const c of COLORS) { if (lower.includes(c)) { color = c; break; } }
-    let fontSize = null;
-    for (const [label, css] of Object.entries(SIZES)) { if (lower.includes(label)) { fontSize = css; break; } }
-
-    const styles = [];
-    if (color)       styles.push(`color:${color};`);
-    if (fontSize)    styles.push(fontSize);
-    if (isUnderline) styles.push('text-decoration:underline;');
-    const styleAttr  = styles.length ? ` style="${styles.join('')}"` : '';
-
-    let openTag = '', closeTag = '';
-    if (styles.length) { openTag += `<span${styleAttr}>`; closeTag = `</span>` + closeTag; }
-    if (isItalic)      { openTag += '<em>';    closeTag = '</em>'    + closeTag; }
-    if (isBold)        { openTag += '<strong>'; closeTag = '</strong>' + closeTag; }
-
-    if (!openTag) return match;
-    return `wrap your entire response text in ${openTag}...${closeTag} HTML tags (use these exact tags — never use markdown for styling)`;
-  });
+  // Note: "respond in [style]" patterns are handled server-side via extractGlobalResponseStyle
+  // and applied as CSS on the frontend — no AI instruction needed for those.
 
   return instructions;
 }
@@ -269,11 +271,13 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
   app.get("/api/settings", async (req, res) => {
     const settings = await storage.getAppSettings();
+    const customInstructions = settings?.customInstructions ?? "";
     res.json({
       assistantName: settings?.assistantName ?? "ON-PNT® Assistant",
       welcomeMessage: settings?.welcomeMessage ?? "Ask me anything about your SharePoint documents.",
       notFoundMessage: settings?.notFoundMessage ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
-      customInstructions: settings?.customInstructions ?? "",
+      customInstructions,
+      responseStyle: extractGlobalResponseStyle(customInstructions),
       temperature: settings?.temperature ?? 0,
       topP: settings?.topP ?? 1,
       maxTokens: settings?.maxTokens ?? 1500,

@@ -23,6 +23,7 @@ export function ChatWidget() {
 
   const assistantName = settings?.assistantName || DEFAULTS.assistantName;
   const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
+  const responseStyle = settings?.responseStyle || null;
 
   const notifyParent = (event) => {
     try {
@@ -236,6 +237,7 @@ export function ChatWidget() {
                     isError={isError}
                     onSend={handleSend}
                     welcomeMessage={welcomeMessage}
+                    responseStyle={responseStyle}
                   />
                 </div>
               </div>

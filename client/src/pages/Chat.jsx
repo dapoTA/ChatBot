@@ -10,7 +10,18 @@ import rehypeRaw from "rehype-raw";
 // rehypeRaw allows the AI to emit styled HTML (e.g. <span style="...">).
 // Content comes from the OpenAI API, not directly from end-users.
 
-export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents." }) {
+export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents.", responseStyle = null }) {
+
+  // Convert responseStyle object → a CSS style object applied to assistant message containers.
+  // CSS inheritance means child elements with their own inline styles (e.g. the red bold prefix)
+  // will naturally override the inherited global colour/weight.
+  const globalMsgStyle = responseStyle ? {
+    ...(responseStyle.color      && { color: responseStyle.color }),
+    ...(responseStyle.bold       && { fontWeight: 'bold' }),
+    ...(responseStyle.italic     && { fontStyle: 'italic' }),
+    ...(responseStyle.underline  && { textDecoration: 'underline' }),
+    ...(responseStyle.fontSize   && { fontSize: responseStyle.fontSize.replace('font-size:', '').replace(';', '') }),
+  } : {};
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
 
@@ -80,7 +91,7 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                   )}
                 >
                   {msg.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <div className="prose prose-sm dark:prose-invert max-w-none" style={globalMsgStyle}>
                   <ReactMarkdown
                     rehypePlugins={[rehypeRaw]}
                     components={{
