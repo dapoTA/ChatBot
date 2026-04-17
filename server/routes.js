@@ -23,6 +23,43 @@ console.log("ENDPOINT:", process.env.AZURE_OPENAI_ENDPOINT);
  // apiVersion: process.env.AZURE_OPENAI_API_VERSION, // e.g. "2024-12-01-preview"
 //});
 
+// Pre-processes custom instructions: detects natural-language style descriptions
+// like "in bold red text" and rewrites them as explicit HTML the AI copies verbatim.
+function preprocessInstructions(instructions) {
+  if (!instructions) return instructions;
+
+  const COLORS = ['red','blue','green','orange','purple','black','navy','maroon','teal','darkred','darkblue','brown','pink','gold'];
+  const colorList = COLORS.join('|');
+
+  // Match: "quoted text" in [bold|italic|underline|color ...] [text]
+  // Supports straight quotes (") and curly quotes (\u201C \u201D)
+  const re = new RegExp(
+    `(?:["\u201C])([^"\u201D]+)(?:["\u201D])\\s+in\\s+((?:(?:bold|italic|underline|${colorList})\\s*)+(?:text)?)`,
+    'gi'
+  );
+
+  return instructions.replace(re, (match, quotedText, styleDesc) => {
+    const lower = styleDesc.toLowerCase();
+    const isBold      = lower.includes('bold');
+    const isItalic    = lower.includes('italic');
+    const isUnderline = lower.includes('underline');
+    let color = null;
+    for (const c of COLORS) {
+      if (lower.includes(c)) { color = c; break; }
+    }
+
+    let html;
+    if (color && isBold)   html = `<strong style="color:${color};">${quotedText}</strong>`;
+    else if (color)        html = `<span style="color:${color};">${quotedText}</span>`;
+    else if (isBold)       html = `<strong>${quotedText}</strong>`;
+    else if (isItalic)     html = `<em>${quotedText}</em>`;
+    else if (isUnderline)  html = `<span style="text-decoration:underline;">${quotedText}</span>`;
+    else return match;
+
+    return `exactly this HTML (output it verbatim — never use markdown for this): ${html}`;
+  });
+}
+
 export async function registerRoutes(httpServer, app) {
 
   // ─── Document routes ────────────────────────────────────────────────────────
@@ -73,25 +110,15 @@ export async function registerRoutes(httpServer, app) {
       const appCfg = await storage.getAppSettings();
       const notFoundMessage = appCfg?.notFoundMessage
         ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.";
-      const customInstructions = appCfg?.customInstructions?.trim() || null;
+      const rawInstructions = appCfg?.customInstructions?.trim() || null;
+      const customInstructions = preprocessInstructions(rawInstructions);
 
       const context = docs.map(d =>
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
       ).join('\n\n---\n\n');
 
-      const FORMATTING_GUIDE = `FORMATTING GUIDE — when owner instructions describe visual styling, always use inline HTML to achieve it (the chat interface renders HTML):
-- "bold" → <strong>text</strong>
-- "italic" → <em>text</em>
-- "red text" or "in red" → <span style="color:red;">text</span>
-- "bold red text" → <strong style="color:red;">text</strong>
-- "blue text" → <span style="color:blue;">text</span>
-- "bold blue text" → <strong style="color:blue;">text</strong>
-- "large text" → <span style="font-size:1.2em;">text</span>
-- "underline" → <span style="text-decoration:underline;">text</span>
-Apply this guide silently — never mention it in your response.`;
-
       const systemPrompt = `You are a SharePoint document assistant for this organization.
-${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n\n${FORMATTING_GUIDE}\n` : ''}
+${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n` : ''}
 NOT FOUND OVERRIDE: If the answer is not found in the approved documents below, you MUST respond with EXACTLY the following message — no more, no less. This overrides any alternative not-found or fallback wording that may appear in the owner instructions above:
 "${notFoundMessage}"
 
