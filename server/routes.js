@@ -24,40 +24,109 @@ console.log("ENDPOINT:", process.env.AZURE_OPENAI_ENDPOINT);
 //});
 
 // Pre-processes custom instructions: detects natural-language style descriptions
-// like "in bold red text" and rewrites them as explicit HTML the AI copies verbatim.
+// and rewrites them as explicit HTML the AI copies verbatim.
 function preprocessInstructions(instructions) {
   if (!instructions) return instructions;
 
-  const COLORS = ['red','blue','green','orange','purple','black','navy','maroon','teal','darkred','darkblue','brown','pink','gold'];
+  const COLORS = [
+    'red','blue','green','orange','purple','black','white','navy','maroon','teal',
+    'darkred','darkblue','brown','pink','gold','gray','grey','silver','crimson',
+    'coral','salmon','indigo','violet','cyan','magenta','lime','olive','turquoise',
+  ];
   const colorList = COLORS.join('|');
 
-  // Match: "quoted text" in [bold|italic|underline|color ...] [text]
-  // Supports straight quotes (") and curly quotes (\u201C \u201D)
-  const re = new RegExp(
-    `(?:["\u201C])([^"\u201D]+)(?:["\u201D])\\s+in\\s+((?:(?:bold|italic|underline|${colorList})\\s*)+(?:text)?)`,
-    'gi'
-  );
+  const SIZES = {
+    'large text': 'font-size:1.3em;',
+    'large':      'font-size:1.3em;',
+    'small text': 'font-size:0.85em;',
+    'small':      'font-size:0.85em;',
+    'very large': 'font-size:1.6em;',
+    'extra large':'font-size:1.6em;',
+  };
 
-  return instructions.replace(re, (match, quotedText, styleDesc) => {
+  // Build a combined style string and HTML tag from a plain-language style descriptor
+  function buildHtml(text, styleDesc) {
     const lower = styleDesc.toLowerCase();
     const isBold      = lower.includes('bold');
     const isItalic    = lower.includes('italic');
     const isUnderline = lower.includes('underline');
+
     let color = null;
     for (const c of COLORS) {
       if (lower.includes(c)) { color = c; break; }
     }
 
-    let html;
-    if (color && isBold)   html = `<strong style="color:${color};">${quotedText}</strong>`;
-    else if (color)        html = `<span style="color:${color};">${quotedText}</span>`;
-    else if (isBold)       html = `<strong>${quotedText}</strong>`;
-    else if (isItalic)     html = `<em>${quotedText}</em>`;
-    else if (isUnderline)  html = `<span style="text-decoration:underline;">${quotedText}</span>`;
-    else return match;
+    let fontSize = null;
+    for (const [label, css] of Object.entries(SIZES)) {
+      if (lower.includes(label)) { fontSize = css; break; }
+    }
 
-    return `exactly this HTML (output it verbatim — never use markdown for this): ${html}`;
+    // Build inline style
+    const styles = [];
+    if (color)    styles.push(`color:${color};`);
+    if (fontSize) styles.push(fontSize);
+    if (isUnderline) styles.push('text-decoration:underline;');
+    const styleAttr = styles.length ? ` style="${styles.join('')}"` : '';
+
+    // Wrap with appropriate tags
+    let html = text;
+    if (styles.length || isItalic || isBold) {
+      if (styles.length) html = `<span${styleAttr}>${html}</span>`;
+      if (isItalic)      html = `<em>${html}</em>`;
+      if (isBold)        html = `<strong>${html}</strong>`;
+    } else {
+      return null; // no recognisable style — leave untouched
+    }
+    return html;
+  }
+
+  const styleKeywords = `bold|italic|underline|large|small|very large|extra large|${colorList}`;
+
+  // Pattern 1: "quoted text" in [style descriptors] [text?]
+  // e.g. "Yes, I am eager..." in bold red text
+  const quotedRe = new RegExp(
+    `(?:["\u201C])([^"\u201D]+)(?:["\u201D])\\s+in\\s+((?:(?:${styleKeywords})\\s*)+(?:text)?)`,
+    'gi'
+  );
+  instructions = instructions.replace(quotedRe, (match, quotedText, styleDesc) => {
+    const html = buildHtml(quotedText, styleDesc);
+    if (!html) return match;
+    return `exactly this HTML (output it verbatim — never use markdown): ${html}`;
   });
+
+  // Pattern 2: general "respond / answer / write / reply in [style]" without a quoted string
+  // e.g. "Always respond in green" / "Write all answers in bold blue text"
+  const generalRe = new RegExp(
+    `\\b(?:respond|answer|write|reply|state|display|show)\\s+(?:all\\s+(?:answers?|responses?)\\s+)?in\\s+((?:(?:${styleKeywords})\\s*)+(?:text)?)`,
+    'gi'
+  );
+  instructions = instructions.replace(generalRe, (match, styleDesc) => {
+    // Inject an explicit formatting instruction the AI can follow
+    const lower = styleDesc.toLowerCase();
+    const isBold      = lower.includes('bold');
+    const isItalic    = lower.includes('italic');
+    const isUnderline = lower.includes('underline');
+    let color = null;
+    for (const c of COLORS) { if (lower.includes(c)) { color = c; break; } }
+    let fontSize = null;
+    for (const [label, css] of Object.entries(SIZES)) { if (lower.includes(label)) { fontSize = css; break; } }
+
+    const styles = [];
+    if (color)       styles.push(`color:${color};`);
+    if (fontSize)    styles.push(fontSize);
+    if (isUnderline) styles.push('text-decoration:underline;');
+    const styleAttr  = styles.length ? ` style="${styles.join('')}"` : '';
+
+    let openTag = '', closeTag = '';
+    if (styles.length) { openTag += `<span${styleAttr}>`; closeTag = `</span>` + closeTag; }
+    if (isItalic)      { openTag += '<em>';    closeTag = '</em>'    + closeTag; }
+    if (isBold)        { openTag += '<strong>'; closeTag = '</strong>' + closeTag; }
+
+    if (!openTag) return match;
+    return `wrap your entire response text in ${openTag}...${closeTag} HTML tags (use these exact tags — never use markdown for styling)`;
+  });
+
+  return instructions;
 }
 
 export async function registerRoutes(httpServer, app) {
