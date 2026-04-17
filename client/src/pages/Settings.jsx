@@ -274,7 +274,8 @@ export default function Settings() {
                 {...appearanceForm.register("customInstructions")}
               />
               <p className="text-xs text-muted-foreground">
-                Free-form instructions that shape how the assistant responds — its tone, focus, persona, and rules. Applied to every conversation.
+                Shape the assistant's tone, focus, persona, and style. Applied to every conversation.
+                Do not include a not-found or fallback response here — use the <strong>Not Found Message</strong> field above, which always takes priority.
               </p>
             </div>
 
