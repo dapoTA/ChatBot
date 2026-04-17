@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,7 +19,9 @@ import {
   Save,
   Clock,
   AlertTriangle,
+  Bot,
 } from "lucide-react";
+import { extractStyledPhrases, extractGlobalResponseStyle } from "@/lib/styleParser";
 import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
 
 // ─── Appearance form ────────────────────────────────────────────────────────
@@ -190,6 +192,12 @@ export default function Settings() {
     },
   });
 
+  // ─── Formatting preview (computed live from textarea) ─────────────────────
+  const instructionsValue = appearanceForm.watch("customInstructions") ?? "";
+  const previewPhrases = useMemo(() => extractStyledPhrases(instructionsValue), [instructionsValue]);
+  const previewBodyStyle = useMemo(() => extractGlobalResponseStyle(instructionsValue), [instructionsValue]);
+  const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
@@ -277,6 +285,46 @@ export default function Settings() {
                 Shape the assistant's tone, focus, persona, and style. Applied to every conversation.
                 Do not include a not-found or fallback response here — use the <strong>Not Found Message</strong> field above, which always takes priority.
               </p>
+            </div>
+
+            {/* ── Formatting Preview ─────────────────────────────────────── */}
+            <div className="space-y-2" data-testid="formatting-preview-section">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                Formatting Preview
+              </Label>
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                {hasPreview ? (
+                  <div className="flex gap-2 items-start">
+                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Bot className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                    <div
+                      className="bg-white dark:bg-secondary border border-border rounded-lg rounded-bl-none p-3 text-sm leading-relaxed max-w-sm"
+                      style={previewBodyStyle ?? {}}
+                      data-testid="formatting-preview-bubble"
+                    >
+                      {previewPhrases.map((p, i) => (
+                        <p
+                          key={i}
+                          className="mb-1"
+                          dangerouslySetInnerHTML={{ __html: p.html }}
+                        />
+                      ))}
+                      <p>
+                        Here is the information you requested based on the available documents.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic" data-testid="formatting-preview-empty">
+                    No special formatting detected — add a phrase like{" "}
+                    <code className="bg-muted px-1 rounded">"Hello!" in bold red text</code>{" "}
+                    or{" "}
+                    <code className="bg-muted px-1 rounded">Always respond in bold green</code>{" "}
+                    to see a live preview here.
+                  </p>
+                )}
+              </div>
             </div>
 
             <Button type="submit" disabled={saveAppearance.isPending} data-testid="button-save-appearance">
