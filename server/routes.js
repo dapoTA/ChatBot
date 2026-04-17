@@ -79,8 +79,19 @@ export async function registerRoutes(httpServer, app) {
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
       ).join('\n\n---\n\n');
 
+      const FORMATTING_GUIDE = `FORMATTING GUIDE — when owner instructions describe visual styling, always use inline HTML to achieve it (the chat interface renders HTML):
+- "bold" → <strong>text</strong>
+- "italic" → <em>text</em>
+- "red text" or "in red" → <span style="color:red;">text</span>
+- "bold red text" → <strong style="color:red;">text</strong>
+- "blue text" → <span style="color:blue;">text</span>
+- "bold blue text" → <strong style="color:blue;">text</strong>
+- "large text" → <span style="font-size:1.2em;">text</span>
+- "underline" → <span style="text-decoration:underline;">text</span>
+Apply this guide silently — never mention it in your response.`;
+
       const systemPrompt = `You are a SharePoint document assistant for this organization.
-${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n` : ''}
+${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n\n${FORMATTING_GUIDE}\n` : ''}
 NOT FOUND OVERRIDE: If the answer is not found in the approved documents below, you MUST respond with EXACTLY the following message — no more, no less. This overrides any alternative not-found or fallback wording that may appear in the owner instructions above:
 "${notFoundMessage}"
 
