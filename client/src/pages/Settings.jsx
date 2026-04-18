@@ -325,6 +325,25 @@ export default function Settings() {
                   </p>
                 )}
               </div>
+              <div className="mt-2 space-y-1.5">
+                <p className="text-xs font-medium text-muted-foreground">How formatting instructions work:</p>
+                <div className="space-y-1 text-xs text-muted-foreground">
+                  <div className="flex gap-2">
+                    <span className="text-primary font-bold shrink-0">①</span>
+                    <span>
+                      <strong>Styled prefix</strong> — wrap a phrase in quotes followed by a style:{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Always begin with "Thank you for your question!" in bold blue text</code>
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="text-primary font-bold shrink-0">②</span>
+                    <span>
+                      <strong>Global body style</strong> — apply a colour or weight to all responses:{" "}
+                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Always respond in bold green</code>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Button type="submit" disabled={saveAppearance.isPending} data-testid="button-save-appearance">
