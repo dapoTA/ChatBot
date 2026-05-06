@@ -1,9 +1,17 @@
-import { Pool } from "pg";
-import { drizzle } from "drizzle-orm/node-postgres";
+import mssql from "mssql";
+import { drizzle } from "drizzle-orm/mssql-serverless";
 import * as schema from "../shared/schema.js";
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:pgsa@localhost:7700/chatbot",
-});
+const config = {
+  server: process.env.MSSQL_HOST || "localhost",
+  port: parseInt(process.env.MSSQL_PORT || "1433"),
+  database: process.env.MSSQL_DATABASE || "chatbot",
+  user: process.env.MSSQL_USER || "sa",
+  password: process.env.MSSQL_PASSWORD || "",
+  options: {
+    trustServerCertificate: process.env.MSSQL_TRUST_CERT !== "false",
+  },
+};
 
+export const pool = await mssql.connect(config);
 export const db = drizzle(pool, { schema });

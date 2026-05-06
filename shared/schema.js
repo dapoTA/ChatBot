@@ -1,47 +1,47 @@
-import { pgTable, text, serial, boolean, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { mssqlTable, nvarchar, int, bit, datetime2, real } from "drizzle-orm/mssql-core";
 import { createInsertSchema } from "drizzle-zod";
 
-export const documents = pgTable("documents", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  type: text("type").notNull(),
-  url: text("url").notNull(),
-  source: text("source").notNull().default("manual"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const documents = mssqlTable("documents", {
+  id: int("id").identity().primaryKey(),
+  title: nvarchar("title", { length: "max" }).notNull(),
+  content: nvarchar("content", { length: "max" }).notNull(),
+  type: nvarchar("type", { length: "max" }).notNull(),
+  url: nvarchar("url", { length: "max" }).notNull(),
+  source: nvarchar("source", { length: "max" }).notNull().default("manual"),
+  createdAt: datetime2("created_at").defaultNow(),
 });
 
-export const messages = pgTable("messages", {
-  id: serial("id").primaryKey(),
-  role: text("role").notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+export const messages = mssqlTable("messages", {
+  id: int("id").identity().primaryKey(),
+  role: nvarchar("role", { length: "max" }).notNull(),
+  content: nvarchar("content", { length: "max" }).notNull(),
+  createdAt: datetime2("created_at").defaultNow(),
 });
 
-export const sharepointConfigs = pgTable("sharepoint_configs", {
-  id: serial("id").primaryKey(),
-  siteUrl: text("site_url").notNull(),
-  domain: text("domain").notNull(),
-  username: text("username").notNull(),
-  password: text("password").notNull(),
-  libraryName: text("library_name").notNull().default("Documents"),
-  allowSelfSigned: boolean("allow_self_signed").notNull().default(true),
-  lastSyncedAt: timestamp("last_synced_at"),
-  updatedAt: timestamp("updated_at").defaultNow(),
+export const sharepointConfigs = mssqlTable("sharepoint_configs", {
+  id: int("id").identity().primaryKey(),
+  siteUrl: nvarchar("site_url", { length: "max" }).notNull(),
+  domain: nvarchar("domain", { length: "max" }).notNull(),
+  username: nvarchar("username", { length: "max" }).notNull(),
+  password: nvarchar("password", { length: "max" }).notNull(),
+  libraryName: nvarchar("library_name", { length: "max" }).notNull().default("Documents"),
+  allowSelfSigned: bit("allow_self_signed").notNull().default(true),
+  lastSyncedAt: datetime2("last_synced_at"),
+  updatedAt: datetime2("updated_at").defaultNow(),
 });
 
-export const appSettings = pgTable("app_settings", {
-  id: serial("id").primaryKey(),
-  assistantName: text("assistant_name").notNull().default("ON-PNT® Assistant"),
-  welcomeMessage: text("welcome_message").notNull().default("Ask me anything about your SharePoint documents."),
-  notFoundMessage: text("not_found_message").notNull().default("I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator."),
-  customInstructions: text("custom_instructions"),
+export const appSettings = mssqlTable("app_settings", {
+  id: int("id").identity().primaryKey(),
+  assistantName: nvarchar("assistant_name", { length: "max" }).notNull().default("ON-PNT® Assistant"),
+  welcomeMessage: nvarchar("welcome_message", { length: "max" }).notNull().default("Ask me anything about your SharePoint documents."),
+  notFoundMessage: nvarchar("not_found_message", { length: "max" }).notNull().default("I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator."),
+  customInstructions: nvarchar("custom_instructions", { length: "max" }),
   temperature: real("temperature").notNull().default(0),
   topP: real("top_p").notNull().default(1),
-  maxTokens: integer("max_tokens").notNull().default(1500),
+  maxTokens: int("max_tokens").notNull().default(1500),
   frequencyPenalty: real("frequency_penalty").notNull().default(0),
   presencePenalty: real("presence_penalty").notNull().default(0),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedAt: datetime2("updated_at").defaultNow(),
 });
 
 export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({ id: true, updatedAt: true });

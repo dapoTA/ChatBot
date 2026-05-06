@@ -1,14 +1,19 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+if (!process.env.MSSQL_HOST) {
+  throw new Error("MSSQL_HOST is required — ensure SQL Server connection vars are set");
 }
 
 export default defineConfig({
   out: "./migrations",
   schema: "./shared/schema.js",
-  dialect: "postgresql",
+  dialect: "mssql",
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    server: process.env.MSSQL_HOST,
+    port: parseInt(process.env.MSSQL_PORT || "1433"),
+    database: process.env.MSSQL_DATABASE || "chatbot",
+    user: process.env.MSSQL_USER,
+    password: process.env.MSSQL_PASSWORD,
+    trustServerCertificate: process.env.MSSQL_TRUST_CERT !== "false",
   },
 });

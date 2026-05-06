@@ -2,6 +2,8 @@
 
 A floating chat widget that answers staff questions using documents pulled directly from an on-premises SharePoint 2019 document library. Powered by Azure OpenAI GPT-4o. Embeddable in SharePoint pages via iframe.
 
+> **Branch:** `mssql` — uses SQL Server (mssql) as the database backend. For the PostgreSQL version see the `postgres` branch.
+
 ---
 
 ## What It Does
@@ -25,9 +27,9 @@ A floating chat widget that answers staff questions using documents pulled direc
                                        │
                                   Sync / Ingest
                                        │
-┌─────────────────────────────────────▼───────────────┐
+┌───────────────────────────────────▼─────────────────┐
 │  Node.js / Express  (server/)                       │
-│  routes.js  ──►  storage.js  ──►  PostgreSQL DB     │
+│  routes.js  ──►  storage.js  ──►  SQL Server DB     │
 │                       │                             │
 │                  Azure OpenAI GPT-4o                │
 │           (RAG: docs injected into prompt)          │
@@ -44,7 +46,7 @@ A floating chat widget that answers staff questions using documents pulled direc
 **Stack:**
 - Frontend: React, Vite, Tailwind CSS, shadcn/ui, Framer Motion, wouter, TanStack Query
 - Backend: Node.js, Express
-- Database: PostgreSQL via Drizzle ORM
+- Database: SQL Server via Drizzle ORM + mssql
 - AI: Azure OpenAI GPT-4o (direct REST, no SDK dependency)
 - SharePoint Auth: NTLM via `httpntlm`
 - Document Parsing: `mammoth` (DOCX), `pdf-parse` (PDF), native UTF-8 (TXT/CSV/MD)
@@ -73,7 +75,7 @@ A floating chat widget that answers staff questions using documents pulled direc
 | `server/routes.js` | All API route handlers |
 | `server/sharepoint.js` | SharePoint 2019 NTLM integration (list files, fetch content) |
 | `server/storage.js` | Database access layer (all CRUD operations) |
-| `server/db.js` | PostgreSQL connection and Drizzle instance |
+| `server/db.js` | SQL Server connection and Drizzle instance |
 | `shared/schema.js` | Drizzle schema — all table definitions |
 | `shared/routes.js` | Shared API route definitions and Zod schemas |
 
@@ -103,11 +105,16 @@ Set these as secrets — never hardcode them in source files.
 | `AZURE_OPENAI_DEPLOYMENT` | Deployment / model name | `gpt-4o` |
 | `AZURE_OPENAI_API_VERSION` | API version | `2024-12-01-preview` |
 
-### Required — Database
+### Required — Database (SQL Server)
 
 | Variable | Description | Example |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/chatbot` |
+| `MSSQL_HOST` | SQL Server hostname or IP | `sqlserver.company.com` |
+| `MSSQL_PORT` | SQL Server port (default 1433) | `1433` |
+| `MSSQL_DATABASE` | Database name | `chatbot` |
+| `MSSQL_USER` | SQL Server login username | `sa` |
+| `MSSQL_PASSWORD` | SQL Server login password | `S3cur3P@ss` |
+| `MSSQL_TRUST_CERT` | Trust self-signed/internal certs | `true` |
 
 ### Required — Session
 
@@ -115,15 +122,13 @@ Set these as secrets — never hardcode them in source files.
 |---|---|
 | `SESSION_SECRET` | Random secret string for Express session signing |
 
-> **Local fallback:** If `DATABASE_URL` is not set, the app falls back to `postgresql://postgres:pgsa@localhost:7700/chatbot`
-
 ---
 
 ## Running Locally
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL running locally (or connection to a remote instance)
+- SQL Server 2017+ (or Azure SQL) accessible from your machine
 - Network access to your SharePoint 2019 server
 
 ### Steps
@@ -261,7 +266,7 @@ Navigate to `/settings` to configure the following:
 | Bucket 1 — Fixes & Polish | Fix PDF parser, pass conversation history to AI, session scoping, US-only deployment | ~1 day |
 | Bucket 2 — File Types & Sync | XLSX, PPTX, SharePoint page text, incremental sync | ~1 day |
 | Bucket 3 — True RAG | Document chunking, Azure OpenAI embeddings, vector search, page-level citations | 1–2 weeks |
-| Bucket 4 — SQL Server | Swap PostgreSQL for on-premises SQL Server (driver, schema, upserts, Windows Auth) | 1–2 days |
+| Bucket 4 — SQL Server | Already on this branch! Schema, driver, and config are all wired for SQL Server. | Done |
 
 ---
 
