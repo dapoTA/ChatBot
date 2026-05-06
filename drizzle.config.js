@@ -1,19 +1,9 @@
-import { defineConfig } from "drizzle-kit";
-
-if (!process.env.MSSQL_HOST) {
-  throw new Error("MSSQL_HOST is required — ensure SQL Server connection vars are set");
-}
-
-export default defineConfig({
-  out: "./migrations",
-  schema: "./shared/schema.js",
-  dialect: "mssql",
-  dbCredentials: {
-    server: process.env.MSSQL_HOST,
-    port: parseInt(process.env.MSSQL_PORT || "1433"),
-    database: process.env.MSSQL_DATABASE || "chatbot",
-    user: process.env.MSSQL_USER,
-    password: process.env.MSSQL_PASSWORD,
-    trustServerCertificate: process.env.MSSQL_TRUST_CERT !== "false",
-  },
-});
+// SQL Server migration note:
+// Drizzle ORM does not have a runtime adapter for SQL Server.
+// This branch uses the `mssql` npm package directly for all database queries.
+//
+// To create the database tables, run:
+//   node scripts/create-tables.js
+//
+// Ensure the following environment variables are set before running:
+//   MSSQL_HOST, MSSQL_PORT, MSSQL_DATABASE, MSSQL_USER, MSSQL_PASSWORD, MSSQL_TRUST_CERT

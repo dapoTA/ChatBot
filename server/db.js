@@ -1,6 +1,4 @@
 import mssql from "mssql";
-import { drizzle } from "drizzle-orm/mssql-serverless";
-import * as schema from "../shared/schema.js";
 
 const config = {
   server: process.env.MSSQL_HOST || "localhost",
@@ -14,4 +12,4 @@ const config = {
 };
 
 export const pool = await mssql.connect(config);
-export const db = drizzle(pool, { schema });
+export { mssql as sql };
