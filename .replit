@@ -50,3 +50,7 @@ integrations = ["javascript_openai_ai_integrations:2.0.0"]
 AZURE_OPENAI_ENDPOINT = "https://techassurancetest01.openai.azure.com"
 AZURE_OPENAI_DEPLOYMENT = "gpt-4o"
 AZURE_OPENAI_API_VERSION = "2024-12-01-preview"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
