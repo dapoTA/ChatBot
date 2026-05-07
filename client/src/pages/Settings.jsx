@@ -314,7 +314,7 @@ export default function Settings() {
               />
               <p className="text-xs text-muted-foreground">
                 Shape the assistant's tone, focus, persona, and style. Applied to every conversation.
-                Do not include a not-found or fallback response here — use the <strong>Not Found Message</strong> field above, which always takes priority.
+                Any not-found or fallback response you write here will be automatically removed before reaching the AI. Use the <strong>Not Found Message</strong> field above — it is the sole source of truth for what the assistant says when an answer isn't in the documents.
               </p>
             </div>
 
