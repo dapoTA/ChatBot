@@ -1,6 +1,10 @@
 import { db } from "./db.js";
 import { documents, messages, sharepointConfigs, appSettings } from "../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
+import { encrypt, decrypt } from "./crypto.js";
+
+// Fields in sharepoint_configs that are encrypted at rest
+const ENCRYPTED_FIELDS = ["password", "clientSecret"];
 
 export class DatabaseStorage {
   async getDocuments() {
@@ -35,21 +39,47 @@ export class DatabaseStorage {
 
   async getSharepointConfig() {
     const configs = await db.select().from(sharepointConfigs).limit(1);
-    return configs[0] ?? null;
+    const row = configs[0] ?? null;
+    if (!row) return null;
+    // Decrypt sensitive fields before returning to the application layer
+    const decrypted = { ...row };
+    for (const field of ENCRYPTED_FIELDS) {
+      if (decrypted[field]) decrypted[field] = decrypt(decrypted[field]);
+    }
+    return decrypted;
   }
 
   async upsertSharepointConfig(config) {
-    const existing = await this.getSharepointConfig();
-    if (existing) {
+    // Encrypt sensitive fields before writing to the database
+    const toStore = { ...config };
+    for (const field of ENCRYPTED_FIELDS) {
+      if (toStore[field] && toStore[field] !== "••••••••") {
+        toStore[field] = encrypt(toStore[field]);
+      }
+    }
+
+    const existing = await db.select().from(sharepointConfigs).limit(1);
+    const existingRow = existing[0] ?? null;
+
+    if (existingRow) {
       const [updated] = await db
         .update(sharepointConfigs)
-        .set({ ...config, updatedAt: new Date() })
-        .where(eq(sharepointConfigs.id, existing.id))
+        .set({ ...toStore, updatedAt: new Date() })
+        .where(eq(sharepointConfigs.id, existingRow.id))
         .returning();
-      return updated;
+      // Return with decrypted fields so callers get plain-text values
+      const out = { ...updated };
+      for (const field of ENCRYPTED_FIELDS) {
+        if (out[field]) out[field] = decrypt(out[field]);
+      }
+      return out;
     } else {
-      const [created] = await db.insert(sharepointConfigs).values(config).returning();
-      return created;
+      const [created] = await db.insert(sharepointConfigs).values(toStore).returning();
+      const out = { ...created };
+      for (const field of ENCRYPTED_FIELDS) {
+        if (out[field]) out[field] = decrypt(out[field]);
+      }
+      return out;
     }
   }
 
