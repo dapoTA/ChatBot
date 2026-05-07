@@ -48,6 +48,8 @@ const aiParamsSchema = z.object({
 const sharepointSchema = z.object({
   mode: z.enum(["onprem", "online"]),
   siteUrl: z.string().url("Must be a valid URL"),
+  siteUrlOnprem: z.string().optional().nullable(),
+  siteUrlOnline: z.string().optional().nullable(),
   libraryName: z.string().min(1, "Library name is required"),
   domain: z.string().optional().nullable(),
   username: z.string().optional().nullable(),
@@ -146,6 +148,8 @@ export default function Settings() {
     defaultValues: {
       mode: "onprem",
       siteUrl: "",
+      siteUrlOnprem: "",
+      siteUrlOnline: "",
       libraryName: "Documents",
       domain: "",
       username: "",
@@ -159,6 +163,9 @@ export default function Settings() {
       ? {
           mode: config.mode ?? "onprem",
           siteUrl: config.siteUrl,
+          // Each tab remembers its own URL independently
+          siteUrlOnprem: config.siteUrlOnprem ?? (config.mode === "onprem" ? config.siteUrl : ""),
+          siteUrlOnline: config.siteUrlOnline ?? (config.mode === "online" ? config.siteUrl : ""),
           libraryName: config.libraryName,
           domain: config.domain ?? "",
           username: config.username ?? "",
@@ -185,7 +192,7 @@ export default function Settings() {
   });
 
   const testConnection = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/sharepoint/test"),
+    mutationFn: () => apiRequest("POST", "/api/sharepoint/test", sharepointForm.getValues()),
     onSuccess: async (res) => {
       const result = await res.json();
       setTestResult(result);
@@ -488,7 +495,15 @@ export default function Settings() {
               <div className="flex rounded-lg border border-border overflow-hidden" data-testid="toggle-sp-mode">
                 <button
                   type="button"
-                  onClick={() => sharepointForm.setValue("mode", "onprem")}
+                  onClick={() => {
+                    if (spMode !== "onprem") {
+                      // Save the current online URL, restore the last onprem URL
+                      sharepointForm.setValue("siteUrlOnline", sharepointForm.getValues("siteUrl"));
+                      sharepointForm.setValue("siteUrl", sharepointForm.getValues("siteUrlOnprem") ?? "");
+                    }
+                    sharepointForm.setValue("mode", "onprem");
+                    setTestResult(null);
+                  }}
                   data-testid="button-mode-onprem"
                   className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                     spMode === "onprem"
@@ -500,7 +515,15 @@ export default function Settings() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => sharepointForm.setValue("mode", "online")}
+                  onClick={() => {
+                    if (spMode !== "online") {
+                      // Save the current onprem URL, restore the last online URL
+                      sharepointForm.setValue("siteUrlOnprem", sharepointForm.getValues("siteUrl"));
+                      sharepointForm.setValue("siteUrl", sharepointForm.getValues("siteUrlOnline") ?? "");
+                    }
+                    sharepointForm.setValue("mode", "online");
+                    setTestResult(null);
+                  }}
                   data-testid="button-mode-online"
                   className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border ${
                     spMode === "online"

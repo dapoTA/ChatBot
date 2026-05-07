@@ -349,7 +349,24 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
   });
 
   app.post(api.sharepoint.testConnection.path, async (req, res) => {
-    const config = await storage.getSharepointConfig();
+    const dbConfig = await storage.getSharepointConfig();
+
+    // If the frontend sent current form values, use those (so Test Connection
+    // reflects the active tab without requiring a save first).
+    let config;
+    if (req.body && req.body.mode) {
+      config = { ...dbConfig, ...req.body };
+      // Restore real secrets if the masked placeholder was sent
+      if (req.body.password === "••••••••" && dbConfig) config.password = dbConfig.password;
+      if (req.body.clientSecret === "••••••••" && dbConfig) config.clientSecret = dbConfig.clientSecret;
+      // Env-var credentials always win
+      if (process.env.SHAREPOINT_TENANT_ID)     config.tenantId     = process.env.SHAREPOINT_TENANT_ID;
+      if (process.env.SHAREPOINT_CLIENT_ID)     config.clientId     = process.env.SHAREPOINT_CLIENT_ID;
+      if (process.env.SHAREPOINT_CLIENT_SECRET) config.clientSecret = process.env.SHAREPOINT_CLIENT_SECRET;
+    } else {
+      config = dbConfig;
+    }
+
     if (!config) {
       return res.json({ success: false, message: "No SharePoint configuration saved yet." });
     }

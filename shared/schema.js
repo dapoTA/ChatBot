@@ -22,6 +22,9 @@ export const sharepointConfigs = pgTable("sharepoint_configs", {
   id: serial("id").primaryKey(),
   mode: text("mode").notNull().default("onprem"),
   siteUrl: text("site_url").notNull(),
+  // Per-mode URL memory — each tab remembers its last URL independently
+  siteUrlOnprem: text("site_url_onprem"),
+  siteUrlOnline: text("site_url_online"),
   libraryName: text("library_name").notNull().default("Documents"),
   // On-premises NTLM fields
   domain: text("domain").notNull().default(""),
