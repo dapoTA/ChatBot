@@ -32,8 +32,8 @@ function buildNtlmOptions(url, config, binary = false) {
 async function getOnlineToken(config) {
   const siteUrl = normaliseSiteUrl(config.siteUrl);
 
-  const tenantId   = process.env.SHAREPOINT_TENANT_ID   || config.tenantId;
-  const clientId   = process.env.SHAREPOINT_CLIENT_ID   || config.clientId;
+  const tenantId     = process.env.SHAREPOINT_TENANT_ID     || config.tenantId;
+  const clientId     = process.env.SHAREPOINT_CLIENT_ID     || config.clientId;
   const clientSecret = process.env.SHAREPOINT_CLIENT_SECRET || config.clientSecret;
 
   if (!tenantId || !clientId || !clientSecret) {
@@ -42,13 +42,17 @@ async function getOnlineToken(config) {
     );
   }
 
+  // Scope must always be the root SharePoint hostname — never a sub-site path
+  const spOrigin = new URL(siteUrl).origin;
   const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+
+  console.log(`[SharePoint Online] Requesting token for scope: ${spOrigin}/.default`);
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",
     client_id: clientId,
     client_secret: clientSecret,
-    scope: `${siteUrl}/.default`,
+    scope: `${spOrigin}/.default`,
   });
 
   const res = await fetch(tokenUrl, {
@@ -81,6 +85,11 @@ async function onlineRequest(url, token, { binary = false, extraHeaders = {} } =
     body = Buffer.from(buf);
   } else {
     body = await res.text();
+  }
+
+  if (res.status >= 400) {
+    console.log(`[SharePoint Online] HTTP ${res.status} from: ${url}`);
+    console.log(`[SharePoint Online] Response body: ${typeof body === "string" ? body.slice(0, 500) : "(binary)"}`);
   }
 
   return { statusCode: res.status, body };
