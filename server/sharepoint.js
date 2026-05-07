@@ -31,12 +31,23 @@ function buildNtlmOptions(url, config, binary = false) {
 
 async function getOnlineToken(config) {
   const siteUrl = normaliseSiteUrl(config.siteUrl);
-  const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
+
+  const tenantId   = process.env.SHAREPOINT_TENANT_ID   || config.tenantId;
+  const clientId   = process.env.SHAREPOINT_CLIENT_ID   || config.clientId;
+  const clientSecret = process.env.SHAREPOINT_CLIENT_SECRET || config.clientSecret;
+
+  if (!tenantId || !clientId || !clientSecret) {
+    throw new Error(
+      "SharePoint Online credentials are not configured. Set SHAREPOINT_TENANT_ID, SHAREPOINT_CLIENT_ID, and SHAREPOINT_CLIENT_SECRET as environment variables, or enter them in the Settings page."
+    );
+  }
+
+  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",
-    client_id: config.clientId,
-    client_secret: config.clientSecret,
+    client_id: clientId,
+    client_secret: clientSecret,
     scope: `${siteUrl}/.default`,
   });
 

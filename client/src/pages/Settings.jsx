@@ -61,11 +61,10 @@ const sharepointSchema = z.object({
     if (!data.domain) ctx.addIssue({ code: "custom", message: "Domain is required", path: ["domain"] });
     if (!data.username) ctx.addIssue({ code: "custom", message: "Username is required", path: ["username"] });
     if (!data.password) ctx.addIssue({ code: "custom", message: "Password is required", path: ["password"] });
-  } else {
-    if (!data.tenantId) ctx.addIssue({ code: "custom", message: "Tenant ID is required", path: ["tenantId"] });
-    if (!data.clientId) ctx.addIssue({ code: "custom", message: "Client ID is required", path: ["clientId"] });
-    if (!data.clientSecret) ctx.addIssue({ code: "custom", message: "Client Secret is required", path: ["clientSecret"] });
   }
+  // Online credentials (tenantId, clientId, clientSecret) are not validated here —
+  // they may be supplied via environment variables server-side. The server will
+  // surface a clear error at test/sync time if credentials are missing.
 });
 
 export default function Settings() {
@@ -614,50 +613,95 @@ export default function Settings() {
             {/* ── SharePoint Online fields ─────────────────────────────────── */}
             {spMode === "online" && (
               <>
+                {/* Env-var banner when all three are set via environment */}
+                {config?.envControlled?.tenantId && config?.envControlled?.clientId && config?.envControlled?.clientSecret && (
+                  <div className="flex items-center gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 px-4 py-3 text-xs text-green-800 dark:text-green-200" data-testid="banner-env-controlled">
+                    <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>All OAuth credentials are set via environment variables and secured server-side.</span>
+                  </div>
+                )}
+
                 <div className="space-y-1">
-                  <Label htmlFor="tenantId">Tenant ID</Label>
-                  <Input
-                    id="tenantId"
-                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                    data-testid="input-tenant-id"
-                    {...sharepointForm.register("tenantId")}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="tenantId">Tenant ID</Label>
+                    {config?.envControlled?.tenantId && (
+                      <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" data-testid="badge-env-tenant-id">env var</span>
+                    )}
+                  </div>
+                  {config?.envControlled?.tenantId ? (
+                    <div className="flex items-center h-9 px-3 rounded-md border border-border bg-muted text-sm text-muted-foreground" data-testid="readonly-tenant-id">
+                      Set via <code className="mx-1 text-xs bg-background px-1 rounded">SHAREPOINT_TENANT_ID</code>
+                    </div>
+                  ) : (
+                    <Input
+                      id="tenantId"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      data-testid="input-tenant-id"
+                      {...sharepointForm.register("tenantId")}
+                    />
+                  )}
                   {sharepointForm.formState.errors.tenantId && (
                     <p className="text-xs text-destructive">{sharepointForm.formState.errors.tenantId.message}</p>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Found in Azure Portal → Azure Active Directory → Overview
-                  </p>
+                  {!config?.envControlled?.tenantId && (
+                    <p className="text-xs text-muted-foreground">Found in Azure Portal → Azure Active Directory → Overview</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <Label htmlFor="clientId">Client ID</Label>
-                    <Input
-                      id="clientId"
-                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      data-testid="input-client-id"
-                      {...sharepointForm.register("clientId")}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="clientId">Client ID</Label>
+                      {config?.envControlled?.clientId && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" data-testid="badge-env-client-id">env var</span>
+                      )}
+                    </div>
+                    {config?.envControlled?.clientId ? (
+                      <div className="flex items-center h-9 px-3 rounded-md border border-border bg-muted text-sm text-muted-foreground" data-testid="readonly-client-id">
+                        Set via <code className="mx-1 text-xs bg-background px-1 rounded">SHAREPOINT_CLIENT_ID</code>
+                      </div>
+                    ) : (
+                      <Input
+                        id="clientId"
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        data-testid="input-client-id"
+                        {...sharepointForm.register("clientId")}
+                      />
+                    )}
                     {sharepointForm.formState.errors.clientId && (
                       <p className="text-xs text-destructive">{sharepointForm.formState.errors.clientId.message}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">App registration Application (client) ID</p>
+                    {!config?.envControlled?.clientId && (
+                      <p className="text-xs text-muted-foreground">App registration Application (client) ID</p>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="clientSecret">Client Secret</Label>
-                    <Input
-                      id="clientSecret"
-                      type="password"
-                      autoComplete="off"
-                      placeholder="Client secret value"
-                      data-testid="input-client-secret"
-                      {...sharepointForm.register("clientSecret")}
-                    />
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="clientSecret">Client Secret</Label>
+                      {config?.envControlled?.clientSecret && (
+                        <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" data-testid="badge-env-client-secret">env var</span>
+                      )}
+                    </div>
+                    {config?.envControlled?.clientSecret ? (
+                      <div className="flex items-center h-9 px-3 rounded-md border border-border bg-muted text-sm text-muted-foreground" data-testid="readonly-client-secret">
+                        Set via <code className="mx-1 text-xs bg-background px-1 rounded">SHAREPOINT_CLIENT_SECRET</code>
+                      </div>
+                    ) : (
+                      <Input
+                        id="clientSecret"
+                        type="password"
+                        autoComplete="off"
+                        placeholder="Client secret value"
+                        data-testid="input-client-secret"
+                        {...sharepointForm.register("clientSecret")}
+                      />
+                    )}
                     {sharepointForm.formState.errors.clientSecret && (
                       <p className="text-xs text-destructive">{sharepointForm.formState.errors.clientSecret.message}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">App registration → Certificates &amp; secrets</p>
+                    {!config?.envControlled?.clientSecret && (
+                      <p className="text-xs text-muted-foreground">App registration → Certificates &amp; secrets</p>
+                    )}
                   </div>
                 </div>
 

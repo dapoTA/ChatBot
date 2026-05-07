@@ -303,14 +303,20 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
   app.get(api.sharepoint.getConfig.path, async (req, res) => {
     const config = await storage.getSharepointConfig();
+    const envControlled = {
+      tenantId:     !!process.env.SHAREPOINT_TENANT_ID,
+      clientId:     !!process.env.SHAREPOINT_CLIENT_ID,
+      clientSecret: !!process.env.SHAREPOINT_CLIENT_SECRET,
+    };
     if (config) {
       res.json({
         ...config,
         password: config.password ? "••••••••" : "",
         clientSecret: config.clientSecret ? "••••••••" : "",
+        envControlled,
       });
     } else {
-      res.json(null);
+      res.json({ envControlled });
     }
   });
 
