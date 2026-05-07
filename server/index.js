@@ -24,10 +24,12 @@ process.on("uncaughtExceptionMonitor", (err) => {
 });
 
 import "dotenv/config";
+import { warnIfKeyMissing } from "./crypto.js";
 
 console.log("ENV deployment:", process.env.AZURE_OPENAI_DEPLOYMENT);
 console.log("ENV api version:", process.env.AZURE_OPENAI_API_VERSION);
 console.log("ENV endpoint:", process.env.AZURE_OPENAI_ENDPOINT);
+warnIfKeyMissing();
 
 import express from "express";
 import { registerRoutes } from "./routes.js";
