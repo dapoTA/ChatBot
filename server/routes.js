@@ -68,6 +68,58 @@ export function extractGlobalResponseStyle(instructions) {
 
 // Pre-processes custom instructions: detects natural-language style descriptions
 // and rewrites them as explicit HTML the AI copies verbatim.
+// Patterns that indicate the admin wrote a not-found fallback in their custom
+// instructions. We strip these blocks before sending to the AI so the dedicated
+// Not Found Message field is the single source of truth.
+const NOT_FOUND_TRIGGERS = [
+  /if\s+the\s+answer\s+isn['']t/i,
+  /if\s+the\s+answer\s+is\s+not/i,
+  /if\s+(?:you\s+)?cannot\s+find/i,
+  /if\s+(?:you\s+)?can['']t\s+find/i,
+  /if\s+(?:the\s+)?information\s+isn['']t/i,
+  /if\s+(?:the\s+)?information\s+is\s+not/i,
+  /if\s+it(?:'s|\s+is)\s+not\s+in/i,
+  /if\s+there\s+is\s+no\s+(?:answer|information|relevant)/i,
+  /if\s+(?:no|the)\s+(?:answer|information)[\s\S]{0,20}not\s+(?:found|available)/i,
+  /answer\s+isn['']t\s+in\s+the\s+doc/i,
+  /not\s+found.*respond\s+with/i,
+];
+
+function stripNotFoundFallback(instructions) {
+  if (!instructions) return instructions;
+
+  const lines = instructions.split('\n');
+  const result = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const isNotFoundLine = NOT_FOUND_TRIGGERS.some(p => p.test(line));
+
+    if (isNotFoundLine) {
+      // Skip this trigger line plus any immediately following lines that look
+      // like the continuation of the fallback block (blank lines, quoted strings).
+      i++;
+      while (i < lines.length) {
+        const next = lines[i].trim();
+        const isContinuation =
+          next === '' ||
+          next.startsWith('"') ||
+          next.startsWith("'") ||
+          NOT_FOUND_TRIGGERS.some(p => p.test(next));
+        if (!isContinuation) break;
+        i++;
+      }
+    } else {
+      result.push(line);
+      i++;
+    }
+  }
+
+  // Collapse any runs of 3+ blank lines left after stripping
+  return result.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function preprocessInstructions(instructions) {
   if (!instructions) return instructions;
 
@@ -182,7 +234,10 @@ export async function registerRoutes(httpServer, app) {
       const notFoundMessage = appCfg?.notFoundMessage
         ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.";
       const rawInstructions = appCfg?.customInstructions?.trim() || null;
-      const customInstructions = preprocessInstructions(rawInstructions);
+      // Strip any not-found fallback the admin may have written in their custom
+      // instructions — the Not Found Message field is the sole source of truth.
+      const strippedInstructions = stripNotFoundFallback(rawInstructions);
+      const customInstructions = preprocessInstructions(strippedInstructions);
 
       const context = docs.map(d =>
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
