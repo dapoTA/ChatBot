@@ -20,12 +20,18 @@ export const messages = pgTable("messages", {
 
 export const sharepointConfigs = pgTable("sharepoint_configs", {
   id: serial("id").primaryKey(),
+  mode: text("mode").notNull().default("onprem"),
   siteUrl: text("site_url").notNull(),
-  domain: text("domain").notNull(),
-  username: text("username").notNull(),
-  password: text("password").notNull(),
   libraryName: text("library_name").notNull().default("Documents"),
+  // On-premises NTLM fields
+  domain: text("domain").notNull().default(""),
+  username: text("username").notNull().default(""),
+  password: text("password").notNull().default(""),
   allowSelfSigned: boolean("allow_self_signed").notNull().default(true),
+  // SharePoint Online OAuth fields
+  tenantId: text("tenant_id"),
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"),
   lastSyncedAt: timestamp("last_synced_at"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

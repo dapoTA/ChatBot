@@ -1,6 +1,8 @@
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
+// ─── NTLM helpers (on-premises) ──────────────────────────────────────────────
+
 async function ntlmRequest(options) {
   const httpntlm = await import("httpntlm");
   const client = httpntlm.default || httpntlm;
@@ -25,9 +27,87 @@ function buildNtlmOptions(url, config, binary = false) {
   };
 }
 
+// ─── OAuth helpers (SharePoint Online) ───────────────────────────────────────
+
+async function getOnlineToken(config) {
+  const siteUrl = normaliseSiteUrl(config.siteUrl);
+  const tokenUrl = `https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`;
+
+  const body = new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: config.clientId,
+    client_secret: config.clientSecret,
+    scope: `${siteUrl}/.default`,
+  });
+
+  const res = await fetch(tokenUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`OAuth token request failed (HTTP ${res.status}): ${text}`);
+  }
+
+  const data = await res.json();
+  return data.access_token;
+}
+
+async function onlineRequest(url, token, { binary = false, extraHeaders = {} } = {}) {
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json;odata=verbose",
+      Authorization: `Bearer ${token}`,
+      ...extraHeaders,
+    },
+  });
+
+  let body;
+  if (binary) {
+    const buf = await res.arrayBuffer();
+    body = Buffer.from(buf);
+  } else {
+    body = await res.text();
+  }
+
+  return { statusCode: res.status, body };
+}
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
+
 export function normaliseSiteUrl(raw) {
   return raw.trim().replace(/\/+$/, "");
 }
+
+async function extractTextContent(buffer, extension, fileName) {
+  switch (extension) {
+    case "txt":
+    case "csv":
+    case "md":
+      return buffer.toString("utf-8").slice(0, 8000);
+
+    case "docx":
+    case "doc": {
+      const mammoth = await import("mammoth");
+      const result = await (mammoth.default || mammoth).extractRawText({ buffer });
+      return (result.value ?? "").slice(0, 8000);
+    }
+
+    case "pdf": {
+      const { PDFParse } = require("pdf-parse");
+      const parser = new PDFParse({ data: buffer });
+      const result = await parser.getText();
+      return (result.text ?? "").slice(0, 8000);
+    }
+
+    default:
+      return `[File: ${fileName} — content extraction not supported for .${extension} files]`;
+  }
+}
+
+// ─── Exported functions ───────────────────────────────────────────────────────
 
 export async function fetchLibraryItems(config) {
   const siteUrl = normaliseSiteUrl(config.siteUrl);
@@ -35,10 +115,16 @@ export async function fetchLibraryItems(config) {
     `${siteUrl}/_api/web/lists/getbytitle('${encodeURIComponent(config.libraryName)}')/items` +
     `?$select=Title,FileLeafRef,FileRef,File_x0020_Type&$filter=FSObjType eq 0&$top=500`;
 
-  const res = await ntlmRequest({
-    ...buildNtlmOptions(apiUrl, config),
-    headers: { Accept: "application/json;odata=verbose" },
-  });
+  let res;
+  if (config.mode === "online") {
+    const token = await getOnlineToken(config);
+    res = await onlineRequest(apiUrl, token);
+  } else {
+    res = await ntlmRequest({
+      ...buildNtlmOptions(apiUrl, config),
+      headers: { Accept: "application/json;odata=verbose" },
+    });
+  }
 
   if (res.statusCode !== 200) {
     throw new Error(
@@ -67,32 +153,6 @@ export async function fetchLibraryItems(config) {
     });
 }
 
-async function extractTextContent(buffer, extension, fileName) {
-  switch (extension) {
-    case "txt":
-    case "csv":
-    case "md":
-      return buffer.toString("utf-8").slice(0, 8000);
-
-    case "docx":
-    case "doc": {
-      const mammoth = await import("mammoth");
-      const result = await (mammoth.default || mammoth).extractRawText({ buffer });
-      return (result.value ?? "").slice(0, 8000);
-    }
-
-case "pdf": {
-  const { PDFParse } = require("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  const result = await parser.getText();
-  return (result.text ?? "").slice(0, 8000);
-}
-
-    default:
-      return `[File: ${fileName} — content extraction not supported for .${extension} files]`;
-  }
-}
-
 export async function fetchDocumentContent(config, doc) {
   const siteUrl = normaliseSiteUrl(config.siteUrl);
   const supportedExtensions = ["txt", "csv", "md", "docx", "doc", "pdf"];
@@ -107,7 +167,13 @@ export async function fetchDocumentContent(config, doc) {
   const fileUrl =
     `${siteUrl}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(doc.fileRef)}')/$value`;
 
-  const res = await ntlmRequest(buildNtlmOptions(fileUrl, config, true));
+  let res;
+  if (config.mode === "online") {
+    const token = await getOnlineToken(config);
+    res = await onlineRequest(fileUrl, token, { binary: true });
+  } else {
+    res = await ntlmRequest(buildNtlmOptions(fileUrl, config, true));
+  }
 
   if (res.statusCode !== 200) {
     throw new Error(`Failed to fetch file content for ${doc.title} (status ${res.statusCode})`);
@@ -124,10 +190,16 @@ export async function testSharepointConnection(config) {
   const apiUrl = `${siteUrl}/_api/web/title`;
 
   try {
-    const res = await ntlmRequest({
-      ...buildNtlmOptions(apiUrl, { ...config, siteUrl }),
-      headers: { Accept: "application/json;odata=verbose" },
-    });
+    let res;
+    if (config.mode === "online") {
+      const token = await getOnlineToken(config);
+      res = await onlineRequest(apiUrl, token);
+    } else {
+      res = await ntlmRequest({
+        ...buildNtlmOptions(apiUrl, { ...config, siteUrl }),
+        headers: { Accept: "application/json;odata=verbose" },
+      });
+    }
 
     if (res.statusCode === 200) {
       let title = "SharePoint";
@@ -139,12 +211,15 @@ export async function testSharepointConnection(config) {
     } else if (res.statusCode === 401 || res.statusCode === 403) {
       return {
         success: false,
-        message: `Authentication failed (HTTP ${res.statusCode}). Check your domain, username, and password.`,
+        message:
+          config.mode === "online"
+            ? `Authentication failed (HTTP ${res.statusCode}). Check your Tenant ID, Client ID, and Client Secret.`
+            : `Authentication failed (HTTP ${res.statusCode}). Check your domain, username, and password.`,
       };
     } else if (res.statusCode === 404) {
       return {
         success: false,
-        message: `Site not found (HTTP 404). Tried: ${apiUrl}\n\nCommon fixes:\n• Remove any trailing slash from the URL\n• Use the root site URL only (e.g. http://sharepoint.company.com/sites/MySite)\n• Do not include page names or document library paths`,
+        message: `Site not found (HTTP 404). Tried: ${apiUrl}\n\nCommon fixes:\n• Remove any trailing slash from the URL\n• Use the root site URL only (e.g. https://company.sharepoint.com/sites/MySite)\n• Do not include page names or document library paths`,
       };
     } else {
       return {
@@ -170,6 +245,12 @@ export async function testSharepointConnection(config) {
       return {
         success: false,
         message: `SSL certificate error. If your SharePoint uses a self-signed certificate, enable "Allow self-signed certificates" in the connection settings.`,
+      };
+    }
+    if (msg.includes("OAuth token") || msg.includes("client_credentials")) {
+      return {
+        success: false,
+        message: `OAuth authentication failed: ${msg}`,
       };
     }
     return { success: false, message: `Connection error: ${msg}\n\nTried: ${apiUrl}` };

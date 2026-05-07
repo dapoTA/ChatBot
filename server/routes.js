@@ -304,7 +304,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
   app.get(api.sharepoint.getConfig.path, async (req, res) => {
     const config = await storage.getSharepointConfig();
     if (config) {
-      res.json({ ...config, password: config.password ? "••••••••" : "" });
+      res.json({
+        ...config,
+        password: config.password ? "••••••••" : "",
+        clientSecret: config.clientSecret ? "••••••••" : "",
+      });
     } else {
       res.json(null);
     }
@@ -314,15 +318,22 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     try {
       const input = api.sharepoint.saveConfig.input.parse(req.body);
 
+      const existing = await storage.getSharepointConfig();
+
       if (input.password === "••••••••") {
-        const existing = await storage.getSharepointConfig();
-        if (existing) {
-          input.password = existing.password;
-        }
+        if (existing) input.password = existing.password;
+      }
+
+      if (input.clientSecret === "••••••••") {
+        if (existing) input.clientSecret = existing.clientSecret;
       }
 
       const config = await storage.upsertSharepointConfig(input);
-      res.json({ ...config, password: "••••••••" });
+      res.json({
+        ...config,
+        password: config.password ? "••••••••" : "",
+        clientSecret: config.clientSecret ? "••••••••" : "",
+      });
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message, field: err.errors[0].path.join('.') });

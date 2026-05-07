@@ -45,12 +45,27 @@ const aiParamsSchema = z.object({
 
 // ─── SharePoint form ─────────────────────────────────────────────────────────
 
-const sharepointSchema = insertSharepointConfigSchema.extend({
-  siteUrl: z.string().url("Must be a valid URL (e.g. http://sharepoint.company.com/sites/mysite)"),
-  domain: z.string().min(1, "Domain is required"),
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const sharepointSchema = z.object({
+  mode: z.enum(["onprem", "online"]),
+  siteUrl: z.string().url("Must be a valid URL"),
   libraryName: z.string().min(1, "Library name is required"),
+  domain: z.string().optional().nullable(),
+  username: z.string().optional().nullable(),
+  password: z.string().optional().nullable(),
+  allowSelfSigned: z.boolean().default(true),
+  tenantId: z.string().optional().nullable(),
+  clientId: z.string().optional().nullable(),
+  clientSecret: z.string().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.mode === "onprem") {
+    if (!data.domain) ctx.addIssue({ code: "custom", message: "Domain is required", path: ["domain"] });
+    if (!data.username) ctx.addIssue({ code: "custom", message: "Username is required", path: ["username"] });
+    if (!data.password) ctx.addIssue({ code: "custom", message: "Password is required", path: ["password"] });
+  } else {
+    if (!data.tenantId) ctx.addIssue({ code: "custom", message: "Tenant ID is required", path: ["tenantId"] });
+    if (!data.clientId) ctx.addIssue({ code: "custom", message: "Client ID is required", path: ["clientId"] });
+    if (!data.clientSecret) ctx.addIssue({ code: "custom", message: "Client Secret is required", path: ["clientSecret"] });
+  }
 });
 
 export default function Settings() {
@@ -130,24 +145,34 @@ export default function Settings() {
   const sharepointForm = useForm({
     resolver: zodResolver(sharepointSchema),
     defaultValues: {
+      mode: "onprem",
       siteUrl: "",
+      libraryName: "Documents",
       domain: "",
       username: "",
       password: "",
-      libraryName: "Documents",
       allowSelfSigned: true,
+      tenantId: "",
+      clientId: "",
+      clientSecret: "",
     },
     values: config
       ? {
+          mode: config.mode ?? "onprem",
           siteUrl: config.siteUrl,
-          domain: config.domain,
-          username: config.username,
-          password: config.password,
           libraryName: config.libraryName,
+          domain: config.domain ?? "",
+          username: config.username ?? "",
+          password: config.password ?? "",
           allowSelfSigned: config.allowSelfSigned,
+          tenantId: config.tenantId ?? "",
+          clientId: config.clientId ?? "",
+          clientSecret: config.clientSecret ?? "",
         }
       : undefined,
   });
+
+  const spMode = sharepointForm.watch("mode");
 
   const saveSharepoint = useMutation({
     mutationFn: (data) => apiRequest("POST", "/api/sharepoint/config", data),
@@ -458,11 +483,48 @@ export default function Settings() {
               SharePoint Connection
             </h2>
 
+            {/* ── Mode toggle ─────────────────────────────────────────────── */}
+            <div className="space-y-2">
+              <Label>Connection Type</Label>
+              <div className="flex rounded-lg border border-border overflow-hidden" data-testid="toggle-sp-mode">
+                <button
+                  type="button"
+                  onClick={() => sharepointForm.setValue("mode", "onprem")}
+                  data-testid="button-mode-onprem"
+                  className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                    spMode === "onprem"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  On-Premises (NTLM)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => sharepointForm.setValue("mode", "online")}
+                  data-testid="button-mode-online"
+                  className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l border-border ${
+                    spMode === "online"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  SharePoint Online (OAuth)
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {spMode === "onprem"
+                  ? "SharePoint 2019 / 2016 hosted on your own servers. Uses NTLM with Active Directory credentials."
+                  : "Microsoft 365 cloud SharePoint. Uses an Azure AD app registration with client credentials."}
+              </p>
+            </div>
+
+            {/* ── Shared fields ────────────────────────────────────────────── */}
             <div className="space-y-1">
               <Label htmlFor="siteUrl">SharePoint Site URL</Label>
               <Input
                 id="siteUrl"
-                placeholder="http://sharepoint.company.com/sites/mysite"
+                placeholder={spMode === "online" ? "https://company.sharepoint.com/sites/mysite" : "http://sharepoint.company.com/sites/mysite"}
                 data-testid="input-site-url"
                 {...sharepointForm.register("siteUrl")}
               />
@@ -473,6 +535,7 @@ export default function Settings() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              {spMode === "onprem" && (
               <div className="space-y-1">
                 <Label htmlFor="domain">Active Directory Domain</Label>
                 <Input
@@ -485,6 +548,7 @@ export default function Settings() {
                   <p className="text-xs text-destructive">{sharepointForm.formState.errors.domain.message}</p>
                 )}
               </div>
+              )}
               <div className="space-y-1">
                 <Label htmlFor="libraryName">Document Library Name</Label>
                 <Input
@@ -499,48 +563,114 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="svc_account"
-                  autoComplete="username"
-                  data-testid="input-username"
-                  {...sharepointForm.register("username")}
-                />
-                {sharepointForm.formState.errors.username && (
-                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.username.message}</p>
-                )}
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  data-testid="input-password"
-                  {...sharepointForm.register("password")}
-                />
-                {sharepointForm.formState.errors.password && (
-                  <p className="text-xs text-destructive">{sharepointForm.formState.errors.password.message}</p>
-                )}
-              </div>
-            </div>
+            {/* ── On-premises fields ──────────────────────────────────────── */}
+            {spMode === "onprem" && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      placeholder="svc_account"
+                      autoComplete="username"
+                      data-testid="input-username"
+                      {...sharepointForm.register("username")}
+                    />
+                    {sharepointForm.formState.errors.username && (
+                      <p className="text-xs text-destructive">{sharepointForm.formState.errors.username.message}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="current-password"
+                      data-testid="input-password"
+                      {...sharepointForm.register("password")}
+                    />
+                    {sharepointForm.formState.errors.password && (
+                      <p className="text-xs text-destructive">{sharepointForm.formState.errors.password.message}</p>
+                    )}
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Allow self-signed certificates</p>
-                <p className="text-xs text-muted-foreground">
-                  Enable if your SharePoint uses an internal or untrusted SSL certificate
-                </p>
-              </div>
-              <Switch
-                checked={sharepointForm.watch("allowSelfSigned")}
-                onCheckedChange={(v) => sharepointForm.setValue("allowSelfSigned", v)}
-                data-testid="switch-self-signed"
-              />
-            </div>
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Allow self-signed certificates</p>
+                    <p className="text-xs text-muted-foreground">
+                      Enable if your SharePoint uses an internal or untrusted SSL certificate
+                    </p>
+                  </div>
+                  <Switch
+                    checked={sharepointForm.watch("allowSelfSigned")}
+                    onCheckedChange={(v) => sharepointForm.setValue("allowSelfSigned", v)}
+                    data-testid="switch-self-signed"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* ── SharePoint Online fields ─────────────────────────────────── */}
+            {spMode === "online" && (
+              <>
+                <div className="space-y-1">
+                  <Label htmlFor="tenantId">Tenant ID</Label>
+                  <Input
+                    id="tenantId"
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    data-testid="input-tenant-id"
+                    {...sharepointForm.register("tenantId")}
+                  />
+                  {sharepointForm.formState.errors.tenantId && (
+                    <p className="text-xs text-destructive">{sharepointForm.formState.errors.tenantId.message}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Found in Azure Portal → Azure Active Directory → Overview
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="clientId">Client ID</Label>
+                    <Input
+                      id="clientId"
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      data-testid="input-client-id"
+                      {...sharepointForm.register("clientId")}
+                    />
+                    {sharepointForm.formState.errors.clientId && (
+                      <p className="text-xs text-destructive">{sharepointForm.formState.errors.clientId.message}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">App registration Application (client) ID</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="clientSecret">Client Secret</Label>
+                    <Input
+                      id="clientSecret"
+                      type="password"
+                      autoComplete="off"
+                      placeholder="Client secret value"
+                      data-testid="input-client-secret"
+                      {...sharepointForm.register("clientSecret")}
+                    />
+                    {sharepointForm.formState.errors.clientSecret && (
+                      <p className="text-xs text-destructive">{sharepointForm.formState.errors.clientSecret.message}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">App registration → Certificates &amp; secrets</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 px-4 py-3 text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                  <p className="font-medium">Azure AD app registration requirements:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-blue-700 dark:text-blue-300">
+                    <li>API permissions: SharePoint → Sites.Read.All (application)</li>
+                    <li>Admin consent granted for your tenant</li>
+                    <li>Authentication: no redirect URI needed (client credentials flow)</li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -613,11 +743,10 @@ export default function Settings() {
           )}
         </div>
 
-        {/* On-premises notice */}
+        {/* Deployment notice */}
         <div className="rounded-lg bg-muted/40 border border-border px-4 py-3 text-xs text-muted-foreground">
-          <strong className="text-foreground">On-premises deployment:</strong> This application must be hosted on a server
-          that has direct network access to your SharePoint 2019 environment. Authentication uses NTLM with
-          your Active Directory credentials.
+          <strong className="text-foreground">On-premises mode:</strong> The server must have direct network access to your SharePoint environment. Authentication uses NTLM with Active Directory credentials.{" "}
+          <strong className="text-foreground">SharePoint Online mode:</strong> Requires an Azure AD app registration with Sites.Read.All permission and admin consent.
         </div>
 
       </div>
