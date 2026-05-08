@@ -96,11 +96,11 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                     rehypePlugins={[rehypeRaw]}
                     components={{
                       a: ({ href, children }) => (
-                        <a href={href} target="_blank" rel="noreferrer">{children}</a>
+                        <a href={href} target={href?.startsWith("mailto:") ? "_self" : "_blank"} rel="noreferrer">{children}</a>
                       )
                     }}
                   >
-                    {msg.content}
+                    {msg.content.replace(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g, '[$1](mailto:$1)')}
                   </ReactMarkdown>
                     </div>
                   ) : (
