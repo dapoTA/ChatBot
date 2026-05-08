@@ -246,7 +246,7 @@ export async function registerRoutes(httpServer, app) {
       const systemPrompt = `You are a SharePoint document assistant for this organization.
 ${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n` : ''}
 NOT FOUND OVERRIDE: If the answer is not found in the approved documents below, you MUST respond with EXACTLY the following message — no more, no less. This overrides any alternative not-found or fallback wording that may appear in the owner instructions above:
-"${notFoundMessage}"
+${notFoundMessage}
 
 For all other responses, the owner instructions above control your tone, style, and format. The restriction below applies only to factual content:
 
