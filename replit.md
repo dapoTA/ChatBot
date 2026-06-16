@@ -6,7 +6,7 @@ A floating chat widget powered by Azure OpenAI GPT-4o that answers questions usi
 
 - **Frontend**: React + Vite + Tailwind CSS + shadcn/ui + Framer Motion + wouter + TanStack Query
 - **Backend**: Node.js + Express
-- **Database**: PostgreSQL via Drizzle ORM
+- **Database**: PostgreSQL (default) or SQL Server — toggled via `DB_TYPE` env var
 - **AI**: Azure OpenAI GPT-4o (direct REST API, credentials in env vars)
 - **SharePoint Auth**: NTLM (for on-premises AD) via `httpntlm`
 - **Document Parsing**: `mammoth` (DOCX), `pdf-parse` (PDF), native UTF-8 (TXT/CSV/MD)
@@ -26,9 +26,14 @@ A floating chat widget powered by Azure OpenAI GPT-4o that answers questions usi
 - `server/index.js` — Express server entry point
 - `server/routes.js` — All API route handlers (chat, documents, SharePoint, settings)
 - `server/sharepoint.js` — SharePoint 2019 NTLM integration (list files, fetch + parse content)
-- `server/storage.js` — Database access layer (all CRUD)
-- `server/db.js` — PostgreSQL connection via DATABASE_URL env var
-- `shared/schema.js` — Drizzle schema (documents, messages, sharepoint_configs, app_settings)
+- `server/storage.js` — Dynamic re-exporter: picks storage.pg.js or storage.mssql.js based on DB_TYPE
+- `server/storage.pg.js` — PostgreSQL storage (Drizzle ORM)
+- `server/storage.mssql.js` — SQL Server storage (raw mssql queries)
+- `server/db.js` — PostgreSQL connection via DATABASE_URL env var (Drizzle)
+- `server/db.mssql.js` — SQL Server connection pool (mssql package)
+- `server/migrate.mssql.js` — One-time SQL Server table creation script (replaces db:push for mssql)
+- `server/crypto.js` — AES-256-GCM encryption for passwords stored in DB
+- `shared/schema.js` — Drizzle schema (PostgreSQL only)
 - `shared/routes.js` — Shared API route definitions and Zod validation schemas
 
 ## Database Tables
@@ -40,28 +45,54 @@ A floating chat widget powered by Azure OpenAI GPT-4o that answers questions usi
 
 ## Environment Variables (Secrets)
 
+### Always required
 - `AZURE_OPENAI_API_KEY` — Azure OpenAI API key
 - `AZURE_OPENAI_ENDPOINT` — e.g. `https://yourresource.openai.azure.com`
 - `AZURE_OPENAI_DEPLOYMENT` — Deployment name, e.g. `gpt-4o`
 - `AZURE_OPENAI_API_VERSION` — e.g. `2024-12-01-preview`
-- `DATABASE_URL` — PostgreSQL connection string
 - `SESSION_SECRET` — Random secret for Express session signing
+- `ENCRYPTION_KEY` — 64-char hex key for AES-256 password encryption
+- `DB_TYPE` — `postgres` (default) or `mssql`
 
-## SharePoint Integration
+### PostgreSQL (DB_TYPE=postgres or unset)
+- `DATABASE_URL` — PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/dbname`
 
-Uses NTLM authentication against SharePoint 2019 REST API:
-- `GET /_api/web/lists/getbytitle('{library}')/items` — list files in library
-- `GET /_api/web/GetFileByServerRelativeUrl('{path}')/$value` — fetch raw file bytes
+### SQL Server (DB_TYPE=mssql)
+- `MSSQL_SERVER` — SQL Server hostname or IP
+- `MSSQL_DATABASE` — Database name, e.g. `chatbot`
+- `MSSQL_USER` — SQL Server login
+- `MSSQL_PASSWORD` — SQL Server password
+- `MSSQL_PORT` — Port (default `1433`)
+- `MSSQL_TRUST_CERT` — Set to `false` to enforce certificate validation (default `true`)
+- `MSSQL_ENCRYPT` — Set to `true` to force TLS encryption (default `false`)
 
-**Supported file types:** `.docx`, `.doc`, `.pdf`, `.txt`, `.csv`, `.md`
-**Not yet supported:** `.xlsx`, `.pptx`, SharePoint page content
+### SharePoint Online (optional)
+- `SHAREPOINT_TENANT_ID` — Azure AD Tenant ID
+- `SHAREPOINT_CLIENT_ID` — App registration Client ID
+- `SHAREPOINT_CLIENT_SECRET` — App registration Client Secret
 
 ## Running
 
 ```bash
 npm run dev        # Start development server (port 5000)
+
+# PostgreSQL (default):
 npm run db:push    # Push schema changes to PostgreSQL
+
+# SQL Server:
+node server/migrate.mssql.js   # Create SQL Server tables (run once)
 ```
+
+## Database Toggle
+
+Set `DB_TYPE` in your `.env` to switch databases:
+
+| `DB_TYPE` | Driver | Schema tool |
+|---|---|---|
+| `postgres` (default) | `pg` + Drizzle ORM | `npm run db:push` |
+| `mssql` | `mssql` raw SQL | `node server/migrate.mssql.js` |
+
+No code changes needed — just change the env var and restart.
 
 ## AI Behaviour
 
@@ -71,6 +102,16 @@ npm run db:push    # Push schema changes to PostgreSQL
 - Custom admin instructions applied to every conversation
 - Configurable not-found fallback message
 
+## IIS Deployment (Windows Server)
+
+1. Install Node.js v22 LTS on the server
+2. Install **iisnode** and **URL Rewrite** IIS modules
+3. Run `npm run build` to produce `dist/public/` (static frontend)
+4. Copy project to IIS site folder
+5. Add a `web.config` pointing iisnode at `server/index.js`
+6. Set all env vars in IIS Application Pool → Advanced Settings → Environment Variables
+7. Run `node server/migrate.mssql.js` once to create SQL Server tables
+
 ## Known Phase 1 Limitations
 
 - No vector/semantic search — all doc text injected into prompt directly (works for ~30 docs)
@@ -79,10 +120,3 @@ npm run db:push    # Push schema changes to PostgreSQL
 - No XLSX/PPTX/SharePoint page support
 - Full sync only (no delta/incremental)
 - Messages persist across all users/sessions (no per-session isolation)
-
-## Planned Buckets
-
-- **Bucket 1** — PDF fix, conversation history, session scoping (~1 day)
-- **Bucket 2** — XLSX, PPTX, SP pages, incremental sync (~1 day)
-- **Bucket 3** — True RAG: chunking + embeddings + vector search (1–2 weeks)
-- **Bucket 4** — SQL Server support: swap pg driver, rewrite schema + upserts (1–2 days)
