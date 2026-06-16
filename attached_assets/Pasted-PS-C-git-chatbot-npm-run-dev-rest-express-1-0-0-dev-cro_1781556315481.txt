@@ -1,0 +1,45 @@
+PS C:\git\chatbot> npm run dev
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.js
+
+DEPLOYMENT: gpt-4o
+API_VERSION: 2024-12-01-preview
+ENDPOINT: https://techassurancetest01.openai.azure.com
+ENV deployment: gpt-4o
+ENV api version: 2024-12-01-preview
+ENV endpoint: https://techassurancetest01.openai.azure.com
+[crypto] ENCRYPTION_KEY is set — passwords encrypted with AES-256-GCM.
+A: entering startup
+B: before registerRoutes
+C: after registerRoutes
+D: before import vite
+E: after import vite
+F: before setupVite
+=== STARTUP FAILED ===
+raw: TypeError: crypto.hash is not a function
+    at getHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:2444:19)
+    at getLockfileHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:32382:9)
+    at getDepHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:32385:23)
+    at initDepsOptimizerMetadata (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:31844:53)
+    at createDepsOptimizer (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:34032:17)
+    at DevEnvironment (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:34806:109)
+    at Object.defaultCreateClientDevEnvironment (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:35218:9)
+    at <anonymous> (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:25389:52)
+    at Array.map (<anonymous>)
+    at _createServer (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:25388:58)
+type: TypeError
+message: crypto.hash is not a function
+stack: TypeError: crypto.hash is not a function
+    at getHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:2444:19)
+    at getLockfileHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:32382:9)
+    at getDepHash (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:32385:23)
+    at initDepsOptimizerMetadata (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:31844:53)
+    at createDepsOptimizer (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:34032:17)
+    at DevEnvironment (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:34806:109)
+    at Object.defaultCreateClientDevEnvironment (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:35218:9)
+    at <anonymous> (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:25389:52)
+    at Array.map (<anonymous>)
+    at _createServer (c:/git/ChatBot/node_modules/vite/dist/node/chunks/config.js:25388:58)
+cause: undefined
+PS C:\git\chatbot>
