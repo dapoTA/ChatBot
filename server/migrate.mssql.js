@@ -5,6 +5,7 @@
  * Equivalent of `npm run db:push` for PostgreSQL.
  * Safe to re-run — uses IF NOT EXISTS checks.
  */
+import "dotenv/config";
 import { getPool, sql } from "./db.mssql.js";
 
 const statements = [

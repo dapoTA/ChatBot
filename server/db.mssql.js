@@ -9,6 +9,7 @@ const config = {
   options: {
     encrypt: process.env.MSSQL_ENCRYPT === "true",
     trustServerCertificate: process.env.MSSQL_TRUST_CERT !== "false",
+    ...(process.env.MSSQL_INSTANCE ? { instanceName: process.env.MSSQL_INSTANCE } : {}),
   },
   pool: {
     max: 10,
