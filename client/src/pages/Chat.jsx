@@ -100,7 +100,12 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                       )
                     }}
                   >
-                    {msg.content.replace(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g, '[$1](mailto:$1)')}
+                    {msg.content
+                      // Auto-link bare email addresses
+                      .replace(/\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g, '[$1](mailto:$1)')
+                      // URL-encode spaces inside markdown link URLs so they render as hyperlinks
+                      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, text, url) => `[${text}](${url.replace(/ /g, '%20')})`)}
+
                   </ReactMarkdown>
                     </div>
                   ) : (
