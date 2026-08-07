@@ -1,5 +1,6 @@
 import { createRequire } from "module";
-const require = createRequire(import.meta.url);
+// Works in both native ESM (dev) and esbuild CJS bundle (production)
+const require = createRequire(typeof __filename !== "undefined" ? __filename : import.meta.url);
 
 // ─── NTLM helpers (on-premises) ──────────────────────────────────────────────
 

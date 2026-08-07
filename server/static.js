@@ -3,7 +3,10 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Works in both native ESM (dev) and esbuild CJS bundle (production)
+const __dirname = typeof __filename !== "undefined"
+  ? path.dirname(__filename)
+  : path.dirname(fileURLToPath(import.meta.url));
 
 export function serveStatic(app) {
   const distPath = path.resolve(__dirname, "public");
