@@ -1,0 +1,81 @@
+PS C:\git\ChatBot> git pull
+remote: Enumerating objects: 98, done.
+remote: Counting objects: 100% (95/95), done.
+remote: Compressing objects: 100% (20/20), done.
+remote: Total 71 (delta 52), reused 70 (delta 51), pack-reused 0 (from 0)
+Unpacking objects: 100% (71/71), 284.80 KiB | 1.12 MiB/s, done.
+From https://github.com/dapoTA/ChatBot
+   163cb33..a3f931b  main       -> origin/main
+Updating 163cb33..a3f931b
+error: Your local changes to the following files would be overwritten by merge:
+        package-lock.json
+        package.json
+Please commit your changes or stash them before you merge.
+Aborting
+PS C:\git\ChatBot> npm run build
+
+> rest-express@1.0.0 build
+> tsx script/build.js
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src\main.jsxBrowserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2343 modules transformed.
+../dist/public/index.html                   2.03 kB │ gzip:   0.78 kB
+../dist/public/assets/index-jinJ_pTd.css   91.04 kB │ gzip:  14.10 kB
+../dist/public/assets/index--LN4zLNt.js   845.95 kB │ gzip: 261.40 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.36s
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/static.js:6:45:
+      6 │ const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        ╵                                              ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+X [ERROR] Top-level await is currently not supported with the "cjs" output format
+
+    server/storage.js:5:8:
+      5 │   mod = await import("./storage.mssql.js");
+        ╵         ~~~~~
+
+X [ERROR] Top-level await is currently not supported with the "cjs" output format
+
+    server/storage.js:7:8:
+      7 │   mod = await import("./storage.pg.js");
+        ╵         ~~~~~
+
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/sharepoint.js:2:30:
+      2 │ const require = createRequire(import.meta.url);
+        ╵                               ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+2 warnings and 2 errors
+Error: Build failed with 2 errors:
+server/storage.js:5:8: ERROR: Top-level await is currently not supported with the "cjs" output format
+server/storage.js:7:8: ERROR: Top-level await is currently not supported with the "cjs" output format
+    at failureErrorWithLog (C:\git\ChatBot\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\git\ChatBot\node_modules\esbuild\lib\main.js:926:25
+    at C:\git\ChatBot\node_modules\esbuild\lib\main.js:878:52
+    at buildResponseToResult (C:\git\ChatBot\node_modules\esbuild\lib\main.js:924:7)
+    at C:\git\ChatBot\node_modules\esbuild\lib\main.js:951:16
+    at responseCallbacks.<computed> (C:\git\ChatBot\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\git\ChatBot\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\git\ChatBot\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:509:28)
+    at addChunk (node:internal/streams/readable:563:12) {
+  errors: [Getter/Setter],
+  warnings: [Getter/Setter]
+}
+PS C:\git\ChatBot> 
