@@ -1,10 +1,7 @@
+import { DatabaseStorage as PgDatabaseStorage, storage as pgStorage } from "./storage.pg.js";
+import { DatabaseStorage as MssqlDatabaseStorage, storage as mssqlStorage } from "./storage.mssql.js";
+
 const dbType = process.env.DB_TYPE || "postgres";
 
-let mod;
-if (dbType === "mssql") {
-  mod = await import("./storage.mssql.js");
-} else {
-  mod = await import("./storage.pg.js");
-}
-
-export const { DatabaseStorage, storage } = mod;
+export const DatabaseStorage = dbType === "mssql" ? MssqlDatabaseStorage : PgDatabaseStorage;
+export const storage = dbType === "mssql" ? mssqlStorage : pgStorage;
