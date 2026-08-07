@@ -1,0 +1,86 @@
+PS C:\git\ChatBot> git stash
+Saved working directory and index state WIP on main: 163cb33 removed iisnode_logs from git tracking
+PS C:\git\ChatBot> git pull
+Updating 163cb33..a3f931b
+Fast-forward
+ ...uild-rest-express-1-0-0-build_1786135635692.txt |  65 ++
+ ...ev-rest-express-1-0-0-dev-cro_1781556315481.txt |  45 ++
+ attached_assets/image_1778183987710.png            | Bin 0 -> 95191 bytes
+ attached_assets/image_1778252723384.png            | Bin 0 -> 43914 bytes
+ attached_assets/image_1781619453533.png            | Bin 0 -> 20738 bytes
+ attached_assets/image_1781619592136.png            | Bin 0 -> 22996 bytes
+ attached_assets/image_1781626146197.png            | Bin 0 -> 42050 bytes
+ attached_assets/image_1781626392389.png            | Bin 0 -> 26356 bytes
+ attached_assets/image_1781878662631.png            | Bin 0 -> 13615 bytes
+ attached_assets/image_1781880000776.png            | Bin 0 -> 26440 bytes
+ package-lock.json                                  | 747 +++++++++++++++++++++
+ package.json                                       |   1 +
+ server/storage.js                                  |  13 +-
+ web.config                                         |   2 +-
+ 14 files changed, 864 insertions(+), 9 deletions(-)
+ create mode 100644 attached_assets/Pasted-PS-C-git-ChatBot-npm-run-build-rest-express-1-0-0-build_1786135635692.txt
+ create mode 100644 attached_assets/Pasted-PS-C-git-chatbot-npm-run-dev-rest-express-1-0-0-dev-cro_1781556315481.txt
+ create mode 100644 attached_assets/image_1778183987710.png
+ create mode 100644 attached_assets/image_1778252723384.png
+ create mode 100644 attached_assets/image_1781619453533.png
+ create mode 100644 attached_assets/image_1781619592136.png
+ create mode 100644 attached_assets/image_1781626146197.png
+ create mode 100644 attached_assets/image_1781626392389.png
+ create mode 100644 attached_assets/image_1781878662631.png
+ create mode 100644 attached_assets/image_1781880000776.png
+PS C:\git\ChatBot> git stash pop
+Auto-merging package-lock.json
+CONFLICT (content): Merge conflict in package-lock.json
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Unmerged paths:
+  (use "git restore --staged <file>..." to unstage)
+  (use "git add <file>..." to mark resolution)
+        both modified:   package-lock.json
+
+no changes added to commit (use "git add" and/or "git commit -a")
+The stash entry is kept in case you need it again.
+PS C:\git\ChatBot> npm run build
+
+> rest-express@1.0.0 build
+> tsx script/build.js
+
+building client...
+vite v7.3.0 building client environment for production...
+transforming (1) src\main.jsxBrowserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2343 modules transformed.
+../dist/public/index.html                   2.03 kB │ gzip:   0.78 kB
+../dist/public/assets/index-jinJ_pTd.css   91.04 kB │ gzip:  14.10 kB
+../dist/public/assets/index--LN4zLNt.js   845.95 kB │ gzip: 261.40 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.28s
+building server...
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/static.js:6:45:
+      6 │ const __dirname = path.dirname(fileURLToPath(import.meta.url));
+        ╵                                              ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta]
+
+    server/sharepoint.js:2:30:
+      2 │ const require = createRequire(import.meta.url);
+        ╵                               ~~~~~~~~~~~
+
+  You need to set the output format to "esm" for "import.meta" to work correctly.
+
+2 warnings
+
+  dist\index.cjs  1.1mb
+
+Done in 107ms
+PS C:\git\ChatBot> 
