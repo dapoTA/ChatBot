@@ -116,14 +116,19 @@ app.use((req, res, next) => {
       console.log("G: after setupVite");
     }
 
-    const port = parseInt(process.env.PORT || "5000", 10);
+    // iisnode passes a named pipe path as PORT (e.g. \\.\pipe\...)
+    // so we must NOT parseInt — pass the raw value and let Node handle both pipes and numbers
+    const port = process.env.PORT || 5000;
+    const listenArg = typeof port === "string" && port.startsWith("\\\\.\\")
+      ? port
+      : { port: Number(port), host: "0.0.0.0" };
 
       console.log("H: before listen");
 
       httpServer.listen(
-        { port, host: "0.0.0.0" }, // ✅ removed reusePort
+        listenArg,
         () => {
-          log(`serving on port ${port}`);
+          log(`serving on ${port}`);
         }
       );
     console.log("I: after listen call");
