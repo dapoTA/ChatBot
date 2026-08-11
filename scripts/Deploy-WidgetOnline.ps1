@@ -86,8 +86,7 @@ Write-Host ""
 
 if ($ClientId -and $ClientSecret -and $TenantId) {
     Write-Host "Connecting with app-only credentials..." -ForegroundColor DarkGray
-    $secureSecret = ConvertTo-SecureString $ClientSecret -AsPlainText -Force
-    Connect-PnPOnline -Url $SiteUrl -ClientId $ClientId -ClientSecret $secureSecret -Tenant $TenantId
+    Connect-PnPOnline -Url $SiteUrl -ClientId $ClientId -ClientSecret $ClientSecret -Tenant $TenantId
 } else {
     Write-Host "Connecting interactively (browser login will open)..." -ForegroundColor DarkGray
     Connect-PnPOnline -Url $SiteUrl -Interactive
