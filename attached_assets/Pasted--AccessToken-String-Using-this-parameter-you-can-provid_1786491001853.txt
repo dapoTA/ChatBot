@@ -1,0 +1,482 @@
+-AccessToken <String>
+    Using this parameter you can provide your own access token.
+    Notice that it is recommend to use one of the other connection methods as this will limits the offered
+    functionality on PnP PowerShell.
+    For instance if the token expires (typically after 1 hour) will not be able to acquire a new valid token, which
+    the other connection methods do allow.
+    You are responsible for providing your own valid access token when using this parameter, for the correct audience,
+    with the correct permissions scopes.
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-AzureADLoginEndPoint [<String>]
+    Custom Azure AD login endpoint to be used if we are using Azure Custom environment to retrieve access token. This
+    will only work if `AzureEnvironment` parameter value is set to `Custom`.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-AzureADWorkloadIdentity [<SwitchParameter>]
+    Connects using Azure AD Workload Identity in Azure workload identity environments where `AZURE_CLIENT_ID`,
+    `AZURE_TENANT_ID`, `AZURE_AUTHORITY_HOST`, and `AZURE_FEDERATED_TOKEN_FILE` are available. For GitHub Actions and
+    Azure DevOps pipelines, use `-FederatedIdentity` instead.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-AzureEnvironment [<AzureEnvironment>]
+    The Azure environment to use for authentication, the defaults to 'Production' which is the main Azure environment.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-CertificateBase64Encoded [<String>]
+    Specify a base64 encoded string as representing the private certificate.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-CertificatePassword [<SecureString>]
+    Password to the certificate (*.pfx)
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-CertificatePath [<String>]
+    Path to the certificate containing the private key (*.pfx)
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ClientId [<String>]
+    The Client ID of the Azure AD Application
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ClientSecret <String>
+    The client secret to use. When using this, technically an Azure Access Control Service (ACS) authentication will
+    take place. This effectively means only cmdlets that are connecting to SharePoint Online will work. Cmdlets using
+    Microsoft Graph or any other API behind the scenes will not work.
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Connection [<PnPConnection>]
+    Optional connection to be reused by the new connection. Retrieve the value for this parameter by either specifying
+    -ReturnConnection on Connect-PnPOnline or by executing Get-PnPConnection.
+
+    When passed in, the ClientId/AppId used for the passed in connection will be used for the new connection. It will
+    override any -ClientId or -AppId parameter passed in.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-CreateDrive [<SwitchParameter>]
+    If you want to create a PSDrive connected to the URL
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Credentials [<CredentialPipeBind>]
+    Credentials of the user to connect with.
+    Either specify a PSCredential object or a string.
+    In case of a string value a lookup will be done to the Generic Credentials section of the Windows Credentials in
+    the Windows Credential Manager for the correct credentials.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-CurrentCredentials [<CredentialPipeBind>]
+    Use credentials of the currently logged in user. Applicable exclusively when connecting to on premises SharePoint
+    Server via PnP.
+    Switch parameter.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-DeviceLogin <SwitchParameter>
+    Log in using the Device Code flow.
+    You will be asked to consent to:
+
+    * Read and write managed metadata
+    * Have full control of all site collections
+    * Read user profiles
+    * Invite guest users to the organization
+    * Read and write all groups
+    * Read and write directory data
+    * Read and write identity providers
+    * Access the directory as you
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-DriveName [<String>]
+    Name of the PSDrive to create (default: SPO)
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-EnvironmentVariable [<SwitchParameter>]
+    Connects using the necessary environment variables. For more information the required environment variables,
+    please refer to this article, [Azure.Identity Environment
+    Variables](https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/identity/Azure.Identity#environment-variables)
+    here. We support only Service principal with certificate and Username with password mode for authentication.
+    Configuration will be attempted in that order. For example, if values for a certificate and username+password are
+    both present, the client certificate method will be used. By default, it will use the `-ClientId` specified in
+    `AZURE_CLIENT_ID` environment variable.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-FederatedIdentity <SwitchParameter>
+    Connects using Federated Identity. Use this option for GitHub Actions and Azure DevOps pipelines. For Azure
+    workload identity environments that provide `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_AUTHORITY_HOST`, and
+    `AZURE_FEDERATED_TOKEN_FILE`, use `-AzureADWorkloadIdentity` instead. For more information on this, you can visit
+    [this link](https://learn.microsoft.com/en-us/entra/workload-id/workload-identity-federation-create-trust?pivots=id
+    entity-wif-apps-methods-rest).
+
+    This option is available from version 3.1.51-nightly onwards.
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ForceAuthentication [<SwitchParameter>]
+    Will clear the stored authentication information when using Interactive login (all platforms) and allows you to
+    authenticate again towards a site with different credentials.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Interactive <SwitchParameter>
+    Connects to the Entra ID (Azure AD) using interactive login, allowing you to authenticate using multi-factor
+    authentication.
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ManagedIdentity <SwitchParameter>
+    Connects using an Azure Managed Identity. For use with Azure Functions, Azure Automation Runbooks (if configured
+    to use a managed identity) or Azure Cloud Shell only.
+    This method will acquire a token using the built-in endpoints in the Azure Cloud Shell, Azure Automation Runbooks
+    and Azure Functions.
+    Read up on [the
+    documentation](https://pnp.github.io/powershell/articles/azurefunctions.html#by-using-a-managed-identity) on how
+    to make use of this option.
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-MicrosoftGraphEndPoint [<String>]
+    Custom Microsoft Graph endpoint to be used if we are using Azure Custom environment. This will only work if
+    `AzureEnvironment` parameter value is set to `Custom`.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-OSLogin <SwitchParameter>
+    Connects using Web Account Manager (WAM). This works on systems with Windows and Linux OS, on other OS will open
+    browser.
+
+    Use this to open the native Windows or Linux authentication prompt. It supports Windows Hello, conditional access
+    policies, FIDO keys and other OS integration auth options. Requires that the Entra ID app registration have
+    `ms-appx-web://microsoft.aad.brokerplugin/{client_id}` as a redirect URI.
+
+    For more information on usage in Windows, visit this
+    [link](https://learn.microsoft.com/en-us/entra/msal/dotnet/acquiring-tokens/desktop-mobile/wam).
+
+    For more information on usage in Linux, visit this [link](https://learn.microsoft.com/en-us/entra/msal/dotnet/acqui
+    ring-tokens/desktop-mobile/linux-dotnet-sdk?tabs=ubuntudep)
+
+    For more information on usage in WSL, visit this [link](https://learn.microsoft.com/en-us/entra/msal/dotnet/acquiri
+    ng-tokens/desktop-mobile/linux-dotnet-sdk-wsl?tabs=ubuntudep)
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-PersistLogin <SwitchParameter>
+    Persist the current access token and related information in a locally stored cache. This cache will be retained
+    between PowerShell sessions and will also be available after a reboot. You only need to provide this switch one
+    time on Connect-PnPOnline cmdlet, it will after that retain the information and reuse it for new connections to
+    the same tenant. Notice that while using a cached token, if you change the permissions of an application
+    registration, the token associated with that registration will not be updated automatically in the cache. You will
+    have to clear the cache entry first and reauthenticate: use `Disconnect-PnPOnline -ClearPersistedLogin`
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Realm [<String>]
+    Authentication realm.
+    If not specified will be resolved from the url specified.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-RedirectUri [<String>]
+    The Redirect URI of the Azure AD Application
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ReturnConnection [<SwitchParameter>]
+    Returns the connection for use with the -Connection parameter on cmdlets. It will not touch the current connection
+    which can be established by omitting this parameter.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Tenant <String>
+    The Azure Active Directory tenant name, e.g. mycompany.onmicrosoft.com or mycompany.com if you have added custom
+    domains to your tenant
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-TenantAdminUrl [<String>]
+    The url to the Tenant Admin site.
+    If not specified, the cmdlets will assume to connect automatically to https://\[tenantname\]-admin.sharepoint.com
+    where appropriate.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Thumbprint <String>
+    The thumbprint of the certificate containing the private key registered with the application in Azure Active
+    Directory
+
+    Required?                    true
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-TransformationOnPrem [<SwitchParameter>]
+    If you want to the use page transformation cmdlets, setting this switch will allow you to connect to an on-prem
+    server.
+    Notice that this -only- applies to Transformation cmdlets.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-Url [<String>]
+    The Url of the site collection or subsite to connect to, i.e. tenant.sharepoint.com,
+    https://tenant.sharepoint.com, tenant.sharepoint.com/sites/hr, etc.
+
+    Required?                    false
+    Position?                    0
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-UserAssignedManagedIdentityAzureResourceId [<String>]
+    Can be used in combination with `-ManagedIdentity` to specify the Azure Resource ID of the user assigned managed
+    identity to use.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-UserAssignedManagedIdentityClientId [<String>]
+    Can be used in combination with `-ManagedIdentity` to specify the client id of the user assigned managed identity
+    to use.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-UserAssignedManagedIdentityObjectId [<String>]
+    Can be used in combination with `-ManagedIdentity` to specify the object/principal id of the user assigned managed
+    identity to use.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-ValidateConnection [<SwitchParameter>]
+    When provided, the cmdlet will check to ensure the SharePoint Online site specified through `-Url` exists and if
+    not, will throw an exception. If you omit this flag or set it to $false, it will blindly set up a connection
+    without validating that the site actually exists. Making use of this option does make one extra call on the
+    connection attempt, so it is recommended to only use it in scenarios where you know the site you're trying to
+    connect o may not exist and would like to have feedback on this during the connect.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
+
+
+-X509KeyStorageFlags [<System.Security.Cryptography.X509Certificates.X509KeyStorageFlags>]
+    Defines where and how to import the private key of an X.509 certificate.
+
+    This enumeration supports a bitwise combination of its member values.
+
+    Required?                    false
+    Position?                    Named
+    Default value
+    Accept pipeline input?       false
+    Aliases                      none
+    Accept wildcard characters?  false
