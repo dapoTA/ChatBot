@@ -203,9 +203,11 @@ export async function registerRoutes(httpServer, app) {
 
   // ─── /embed.js — serve chatbot-widget.js with server URL auto-injected ───────
   app.get("/embed.js", (req, res) => {
+    // PUBLIC_URL env var overrides auto-detection — required when IIS terminates SSL
+    // (iisnode uses a named pipe internally so req.protocol is always "http")
     const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
     const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
-    const serverUrl = `${proto}://${host}`;
+    const serverUrl = process.env.PUBLIC_URL || `${proto}://${host}`;
     const widgetPath = path.join(__dirname, "../chatbot-widget.js");
     const script = fs.readFileSync(widgetPath, "utf8")
       .replace('"__CHATBOT_URL__"', JSON.stringify(serverUrl));
