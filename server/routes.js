@@ -1,9 +1,16 @@
 import { createServer } from "http";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { storage } from "./storage.js";
 import { api } from "../shared/routes.js";
 import { z } from "zod";
 import { insertAppSettingsSchema } from "../shared/schema.js";
 import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } from "./sharepoint.js";
+
+const __dirname = typeof __filename !== "undefined"
+  ? path.dirname(__filename)
+  : path.dirname(fileURLToPath(import.meta.url));
 //import OpenAI from "openai";
 
 console.log("DEPLOYMENT:", process.env.AZURE_OPENAI_DEPLOYMENT);
@@ -184,6 +191,28 @@ function preprocessInstructions(instructions) {
 }
 
 export async function registerRoutes(httpServer, app) {
+
+  // ─── CORS — allow SharePoint and any cross-origin consumer to load the widget ─
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.status(204).end();
+    next();
+  });
+
+  // ─── /embed.js — serve chatbot-widget.js with server URL auto-injected ───────
+  app.get("/embed.js", (req, res) => {
+    const proto = req.headers["x-forwarded-proto"] || req.protocol || "http";
+    const host = req.headers["x-forwarded-host"] || req.headers.host || "localhost";
+    const serverUrl = `${proto}://${host}`;
+    const widgetPath = path.join(__dirname, "../chatbot-widget.js");
+    const script = fs.readFileSync(widgetPath, "utf8")
+      .replace('"__CHATBOT_URL__"', JSON.stringify(serverUrl));
+    res.setHeader("Content-Type", "application/javascript");
+    res.setHeader("Cache-Control", "no-cache");
+    res.send(script);
+  });
 
   // ─── Document routes ────────────────────────────────────────────────────────
 
