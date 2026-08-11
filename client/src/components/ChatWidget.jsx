@@ -53,7 +53,7 @@ export function ChatWidget() {
 
   const handleMinimize = () => {
     setIsMinimized(true);
-    notifyParent("chatbot:close");
+    notifyParent("chatbot:minimize");
   };
 
   const handleMaximize = () => {
@@ -117,11 +117,11 @@ export function ChatWidget() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             style={{
               position: "fixed",
-              bottom: 24,
-              right: 24,
+              bottom: 20,
+              right: 20,
               zIndex: 9999,
               width: 420,
-              maxWidth: "calc(100vw - 48px)",
+              maxWidth: "calc(100vw - 40px)",
             }}
             data-testid="dialog-chat"
           >
@@ -132,12 +132,13 @@ export function ChatWidget() {
                   background: "hsl(var(--background))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: 16,
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
                   padding: "0 16px",
                   height: 56,
+                  width: 280,
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -178,7 +179,7 @@ export function ChatWidget() {
                   background: "hsl(var(--background))",
                   border: "1px solid hsl(var(--border))",
                   borderRadius: 16,
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
                   height: 580,
                   display: "flex",
                   flexDirection: "column",

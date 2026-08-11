@@ -8,11 +8,14 @@
   var CHATBOT_URL = "__CHATBOT_URL__";
 
   // Iframe size when chat is closed (just big enough for the floating button)
-  var CLOSED_W = "100px";
-  var CLOSED_H = "100px";
-  // Iframe size when chat is open
-  var OPEN_W   = "440px";
-  var OPEN_H   = "620px";
+  var CLOSED_W     = "100px";
+  var CLOSED_H     = "100px";
+  // Iframe size when chat is open (extra 40px each axis gives the box-shadow room)
+  var OPEN_W       = "480px";
+  var OPEN_H       = "660px";
+  // Iframe size when chat is minimized (wide enough to show the pill)
+  var MINIMIZED_W  = "320px";
+  var MINIMIZED_H  = "80px";
 
   // ─── Inject iframe ────────────────────────────────────────────────────────
   function injectWidget() {
@@ -51,6 +54,9 @@
       if (event.data === "chatbot:open") {
         frame.style.width  = OPEN_W;
         frame.style.height = OPEN_H;
+      } else if (event.data === "chatbot:minimize") {
+        frame.style.width  = MINIMIZED_W;
+        frame.style.height = MINIMIZED_H;
       } else if (event.data === "chatbot:close") {
         frame.style.width  = CLOSED_W;
         frame.style.height = CLOSED_H;
