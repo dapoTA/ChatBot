@@ -1,0 +1,15 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/entry-point/2019-01-24/manifest.schema.json",
+  "id": "a3b4c5d6-e7f8-4012-abcd-ef1234567890",
+  "alias": "ChatbotWidgetApplicationCustomizer",
+  "componentType": "Extension",
+  "extensionType": "ApplicationCustomizer",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "safeWithCustomScriptDisabled": true,
+  "servedFromLocalhost": false,
+  "properties": {
+    "chatbotUrl": "https://chatbot.technicalassurance.com"
+  }
+}

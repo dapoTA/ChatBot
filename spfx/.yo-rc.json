@@ -1,0 +1,18 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "isCreatingNewSolution": true,
+    "packageManager": "npm",
+    "solutionName": "chatbot-widget",
+    "solutionShortDescription": "ON-PNT ChatBot floating widget for SharePoint Online",
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "componentType": "extension",
+    "extensionType": "ApplicationCustomizer",
+    "componentName": "ChatbotWidget",
+    "componentDescription": "Injects the ON-PNT floating chat bubble on every SharePoint Online page",
+    "isCreatingNewComponent": true,
+    "componentId": "a3b4c5d6-e7f8-4012-abcd-ef1234567890",
+    "environment": "spo",
+    "version": "1.20.0"
+  }
+}

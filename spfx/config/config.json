@@ -1,0 +1,16 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/config/2019-06-17/config.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "chatbot-widget-application-customizer": {
+      "components": [
+        {
+          "entrypoint": "./lib/extensions/chatbotWidget/ChatbotWidgetApplicationCustomizer.js",
+          "manifest": "./src/extensions/chatbotWidget/ChatbotWidgetApplicationCustomizer.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {}
+}

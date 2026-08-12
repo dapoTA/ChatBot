@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/core-build/serve.schema.json",
+  "port": 4321,
+  "https": true,
+  "serveConfigurations": {
+    "default": {
+      "pageUrl": "https://technicalassurance.sharepoint.com/sites/insite2/SitePages/Home.aspx",
+      "customActions": {
+        "a3b4c5d6-e7f8-4012-abcd-ef1234567890": {
+          "location": "ClientSideExtension.ApplicationCustomizer",
+          "properties": {
+            "chatbotUrl": "https://chatbot.technicalassurance.com"
+          }
+        }
+      }
+    }
+  }
+}
