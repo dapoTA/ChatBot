@@ -381,7 +381,8 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }
-      throw err;
+      console.error("POST /api/settings error:", err);
+      return res.status(500).json({ message: "Failed to save settings." });
     }
   });
 

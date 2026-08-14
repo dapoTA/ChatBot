@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -93,15 +93,22 @@ export default function Settings() {
       notFoundMessage: "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
       customInstructions: "",
     },
-    values: appSettingsData
-      ? {
-          assistantName: appSettingsData.assistantName,
-          welcomeMessage: appSettingsData.welcomeMessage,
-          notFoundMessage: appSettingsData.notFoundMessage,
-          customInstructions: appSettingsData.customInstructions ?? "",
-        }
-      : undefined,
   });
+
+  // Load server data once on mount — using values prop would re-sync on every
+  // refetch and overwrite in-progress user edits in the textarea.
+  const appearanceLoaded = useRef(false);
+  useEffect(() => {
+    if (appSettingsData && !appearanceLoaded.current) {
+      appearanceLoaded.current = true;
+      appearanceForm.reset({
+        assistantName: appSettingsData.assistantName,
+        welcomeMessage: appSettingsData.welcomeMessage,
+        notFoundMessage: appSettingsData.notFoundMessage,
+        customInstructions: appSettingsData.customInstructions ?? "",
+      });
+    }
+  }, [appSettingsData]);
 
   const saveAppearance = useMutation({
     mutationFn: (data) => apiRequest("POST", "/api/settings", data),
@@ -119,16 +126,21 @@ export default function Settings() {
   const aiParamsForm = useForm({
     resolver: zodResolver(aiParamsSchema),
     defaultValues: { temperature: 0, topP: 1, maxTokens: 1500, frequencyPenalty: 0, presencePenalty: 0 },
-    values: appSettingsData
-      ? {
-          temperature: appSettingsData.temperature ?? 0,
-          topP: appSettingsData.topP ?? 1,
-          maxTokens: appSettingsData.maxTokens ?? 1500,
-          frequencyPenalty: appSettingsData.frequencyPenalty ?? 0,
-          presencePenalty: appSettingsData.presencePenalty ?? 0,
-        }
-      : undefined,
   });
+
+  const aiParamsLoaded = useRef(false);
+  useEffect(() => {
+    if (appSettingsData && !aiParamsLoaded.current) {
+      aiParamsLoaded.current = true;
+      aiParamsForm.reset({
+        temperature: appSettingsData.temperature ?? 0,
+        topP: appSettingsData.topP ?? 1,
+        maxTokens: appSettingsData.maxTokens ?? 1500,
+        frequencyPenalty: appSettingsData.frequencyPenalty ?? 0,
+        presencePenalty: appSettingsData.presencePenalty ?? 0,
+      });
+    }
+  }, [appSettingsData]);
 
   const saveAiParams = useMutation({
     mutationFn: (data) => apiRequest("POST", "/api/settings", data),

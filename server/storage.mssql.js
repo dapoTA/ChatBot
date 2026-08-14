@@ -222,21 +222,35 @@ export class DatabaseStorage {
 
   async upsertAppSettings(settings) {
     const pool = await getPool();
-    const existing = await pool.request().query("SELECT TOP 1 id FROM app_settings");
+    const existing = await pool.request().query("SELECT TOP 1 * FROM app_settings");
     const existingRow = existing.recordset[0] ?? null;
+
+    // Merge incoming fields with existing row values so that a partial save
+    // (e.g. appearance-only or AI-params-only) doesn't null out the other fields.
+    const merged = {
+      assistantName:    settings.assistantName    ?? existingRow?.assistant_name    ?? "ON-PNT\u00ae Assistant",
+      welcomeMessage:   settings.welcomeMessage   ?? existingRow?.welcome_message   ?? "Ask me anything about your SharePoint documents.",
+      notFoundMessage:  settings.notFoundMessage  ?? existingRow?.not_found_message ?? "I\u2019m sorry, I couldn\u2019t find relevant information for your request in the available documents.",
+      customInstructions: settings.customInstructions ?? existingRow?.custom_instructions ?? null,
+      temperature:       settings.temperature       ?? existingRow?.temperature        ?? 0,
+      topP:              settings.topP              ?? existingRow?.top_p              ?? 1,
+      maxTokens:         settings.maxTokens         ?? existingRow?.max_tokens         ?? 1500,
+      frequencyPenalty:  settings.frequencyPenalty  ?? existingRow?.frequency_penalty  ?? 0,
+      presencePenalty:   settings.presencePenalty   ?? existingRow?.presence_penalty   ?? 0,
+    };
 
     if (existingRow) {
       await pool.request()
         .input("id", sql.Int, existingRow.id)
-        .input("assistant_name", sql.NVarChar(255), settings.assistantName)
-        .input("welcome_message", sql.NVarChar(sql.MAX), settings.welcomeMessage)
-        .input("not_found_message", sql.NVarChar(sql.MAX), settings.notFoundMessage)
-        .input("custom_instructions", sql.NVarChar(sql.MAX), settings.customInstructions ?? null)
-        .input("temperature", sql.Float, settings.temperature)
-        .input("top_p", sql.Float, settings.topP)
-        .input("max_tokens", sql.Int, settings.maxTokens)
-        .input("frequency_penalty", sql.Float, settings.frequencyPenalty)
-        .input("presence_penalty", sql.Float, settings.presencePenalty)
+        .input("assistant_name", sql.NVarChar(255), merged.assistantName)
+        .input("welcome_message", sql.NVarChar(sql.MAX), merged.welcomeMessage)
+        .input("not_found_message", sql.NVarChar(sql.MAX), merged.notFoundMessage)
+        .input("custom_instructions", sql.NVarChar(sql.MAX), merged.customInstructions ?? null)
+        .input("temperature", sql.Float, merged.temperature)
+        .input("top_p", sql.Float, merged.topP)
+        .input("max_tokens", sql.Int, merged.maxTokens)
+        .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
+        .input("presence_penalty", sql.Float, merged.presencePenalty)
         .query(`UPDATE app_settings SET
                   assistant_name = @assistant_name,
                   welcome_message = @welcome_message,
@@ -250,15 +264,15 @@ export class DatabaseStorage {
                 WHERE id = @id`);
     } else {
       await pool.request()
-        .input("assistant_name", sql.NVarChar(255), settings.assistantName)
-        .input("welcome_message", sql.NVarChar(sql.MAX), settings.welcomeMessage)
-        .input("not_found_message", sql.NVarChar(sql.MAX), settings.notFoundMessage)
-        .input("custom_instructions", sql.NVarChar(sql.MAX), settings.customInstructions ?? null)
-        .input("temperature", sql.Float, settings.temperature)
-        .input("top_p", sql.Float, settings.topP)
-        .input("max_tokens", sql.Int, settings.maxTokens)
-        .input("frequency_penalty", sql.Float, settings.frequencyPenalty)
-        .input("presence_penalty", sql.Float, settings.presencePenalty)
+        .input("assistant_name", sql.NVarChar(255), merged.assistantName)
+        .input("welcome_message", sql.NVarChar(sql.MAX), merged.welcomeMessage)
+        .input("not_found_message", sql.NVarChar(sql.MAX), merged.notFoundMessage)
+        .input("custom_instructions", sql.NVarChar(sql.MAX), merged.customInstructions ?? null)
+        .input("temperature", sql.Float, merged.temperature)
+        .input("top_p", sql.Float, merged.topP)
+        .input("max_tokens", sql.Int, merged.maxTokens)
+        .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
+        .input("presence_penalty", sql.Float, merged.presencePenalty)
         .query(`INSERT INTO app_settings
                   (assistant_name, welcome_message, not_found_message, custom_instructions,
                    temperature, top_p, max_tokens, frequency_penalty, presence_penalty)
