@@ -11,6 +11,30 @@ import { fetchLibraryItems, fetchDocumentContent, testSharepointConnection } fro
 const __dirname = typeof __filename !== "undefined"
   ? path.dirname(__filename)
   : path.dirname(fileURLToPath(import.meta.url));
+
+// Extracts the Windows username from an NTLM Type 3 (authentication) token.
+// IIS passes the raw Negotiate/NTLM header through to Node when Windows Auth
+// is enabled; LOGON_USER is not available via URL Rewrite because authentication
+// runs after URL Rewrite in the IIS pipeline.
+function extractNtlmUsername(authHeader) {
+  if (!authHeader) return null;
+  const m = authHeader.match(/^(?:Negotiate|NTLM)\s+([A-Za-z0-9+/=]+)/);
+  if (!m) return null;
+  try {
+    const buf = Buffer.from(m[1], 'base64');
+    if (buf.length < 52) return null;
+    if (buf.toString('ascii', 0, 8) !== 'NTLMSSP\0') return null;
+    if (buf.readUInt32LE(8) !== 3) return null; // Must be Type 3 (final auth message)
+    // UserName security buffer is at offset 36: length(2) + allocated(2) + offset(4)
+    const userLen    = buf.readUInt16LE(36);
+    const userOffset = buf.readUInt32LE(40);
+    if (userLen === 0 || userOffset + userLen > buf.length) return null;
+    return buf.toString('utf16le', userOffset, userOffset + userLen) || null;
+  } catch {
+    return null;
+  }
+}
+
 //import OpenAI from "openai";
 
 console.log("DEPLOYMENT:", process.env.AZURE_OPENAI_DEPLOYMENT);
@@ -346,10 +370,15 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       const aiResponse = completion.choices[0].message.content || "I couldn't generate a response.";
       const savedMessage = await storage.createMessage({ role: 'assistant', content: aiResponse });
 
-      // Resolve username: client-supplied ?spuser= (SharePoint embeds) takes priority;
-      // fall back to Windows Auth identity forwarded by IIS via the X-Logon-User header
-      // (set by URL Rewrite from the LOGON_USER server variable — direct browser access).
-      const resolvedUsername = username || req.headers['x-logon-user'] || null;
+      // Resolve username (priority order):
+      //  1. ?spuser= param — injected by SharePoint embed scripts (on-prem & SPFx)
+      //  2. NTLM token — decoded from the Authorization header when Windows Auth is
+      //     enabled in IIS (direct browser access); LOGON_USER via URL Rewrite is not
+      //     usable because URL Rewrite fires before authentication in the IIS pipeline
+      const resolvedUsername =
+        username ||
+        extractNtlmUsername(req.headers['authorization']) ||
+        null;
 
       // Write chat log (fire-and-forget, never blocks the response)
       if (appCfg?.enableChatLog) {
@@ -367,16 +396,6 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       console.error('Chat error:', error);
       res.status(500).json({ message: 'Failed to process chat message' });
     }
-  });
-
-  // ─── Temporary diagnostics (remove after confirming Windows Auth headers) ────
-
-  app.get("/api/debug-headers", (req, res) => {
-    res.json({
-      'x-logon-user':      req.headers['x-logon-user']      ?? '(not present)',
-      'x-iis-windowsauthtoken': req.headers['x-iis-windowsauthtoken'] ?? '(not present)',
-      allHeaders: req.headers,
-    });
   });
 
   // ─── App settings routes (public — no credentials exposed) ──────────────────
