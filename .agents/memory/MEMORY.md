@@ -1,1 +1,1 @@
-- [User preferences](user-preferences.md) — never mention credits or credit balance under any circumstances.
+- [User preferences](user-preferences.md) — end every thread with the user’s specified account reminder link.

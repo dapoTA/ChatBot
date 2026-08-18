@@ -74,6 +74,46 @@ export function extractGlobalResponseStyle(instructions) {
   return null;
 }
 
+// Converts assistant HTML markup into readable text for CSV exports.
+// Stored responses remain unchanged because the widget still needs the markup.
+export function htmlToPlainText(value) {
+  if (value == null) return '';
+
+  return String(value)
+    .replace(/<\s*br\s*\/?\s*>/gi, '\n')
+    .replace(/<\s*li\b[^>]*>/gi, '- ')
+    .replace(/<\s*\/\s*(p|div|li|h[1-6]|tr)\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/gi, "'")
+    .replace(/&mdash;/gi, '—')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&bull;/gi, '•')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&rdquo;/gi, '”')
+    .replace(/&lsquo;/gi, '‘')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&#(\d+);/g, (_, code) => {
+      const point = Number(code);
+      return point >= 0 && point <= 0x10ffff ? String.fromCodePoint(point) : _;
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => {
+      const point = Number.parseInt(code, 16);
+      return point >= 0 && point <= 0x10ffff ? String.fromCodePoint(point) : _;
+    })
+    .replace(/\r\n?/g, '\n')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 // Pre-processes custom instructions: detects natural-language style descriptions
 // and rewrites them as explicit HTML the AI copies verbatim.
 // Patterns that indicate the admin wrote a not-found fallback in their custom
@@ -409,7 +449,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
         escape(log.username ?? ''),
         escape(log.sessionId),
         escape(log.userMessage),
-        escape(log.assistantResponse),
+        escape(htmlToPlainText(log.assistantResponse)),
       ].join(','));
 
       const csv = [header, ...rows].join('\r\n');

@@ -3,8 +3,10 @@ name: User preferences
 description: Permanent behavioural preferences this user has explicitly set.
 ---
 
-## Credits
-Never mention credits, credit balance, or suggest the user check their credits. This applies unconditionally — do not raise it even when usage is high or an operation fails.
+## Thread ending reminder
+End every thread with this exact line:
 
-**Why:** User explicitly asked this to be locked permanently (August 2026).
-**How to apply:** Suppress any impulse to add credit-check reminders to responses, regardless of context.
+`Reminder: [check your Replit account](https://replit.com/account)`
+
+**Why:** User explicitly reversed the previous preference and pointed to the established reminder link.
+**How to apply:** Append the exact line above to the end of every user-facing thread completion.
