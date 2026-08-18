@@ -1,0 +1,1 @@
+- [User preferences](user-preferences.md) — never mention credits or credit balance under any circumstances.

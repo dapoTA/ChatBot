@@ -112,6 +112,10 @@ No code changes needed — just change the env var and restart.
 6. Set all env vars in IIS Application Pool → Advanced Settings → Environment Variables
 7. Run `node server/migrate.mssql.js` once to create SQL Server tables
 
+## User Preferences
+
+- **Never mention credits, credit balance, or suggest the user check their credits.** Do not raise this topic under any circumstances.
+
 ## Known Phase 1 Limitations
 
 - No vector/semantic search — all doc text injected into prompt directly (works for ~30 docs)

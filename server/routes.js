@@ -346,11 +346,16 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       const aiResponse = completion.choices[0].message.content || "I couldn't generate a response.";
       const savedMessage = await storage.createMessage({ role: 'assistant', content: aiResponse });
 
+      // Resolve username: client-supplied ?spuser= (SharePoint embeds) takes priority;
+      // fall back to Windows Auth identity forwarded by IIS via the X-Logon-User header
+      // (set by URL Rewrite from the LOGON_USER server variable — direct browser access).
+      const resolvedUsername = username || req.headers['x-logon-user'] || null;
+
       // Write chat log (fire-and-forget, never blocks the response)
       if (appCfg?.enableChatLog) {
         storage.createChatLog({
           sessionId: sessionId || 'unknown',
-          username:  username  || null,
+          username:  resolvedUsername,
           userMessage:       message,
           assistantResponse: aiResponse,
         }).catch((err) => console.error('[chat-log] write failed:', err.message));
