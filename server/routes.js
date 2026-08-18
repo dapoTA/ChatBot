@@ -369,6 +369,16 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     }
   });
 
+  // ─── Temporary diagnostics (remove after confirming Windows Auth headers) ────
+
+  app.get("/api/debug-headers", (req, res) => {
+    res.json({
+      'x-logon-user':      req.headers['x-logon-user']      ?? '(not present)',
+      'x-iis-windowsauthtoken': req.headers['x-iis-windowsauthtoken'] ?? '(not present)',
+      allHeaders: req.headers,
+    });
+  });
+
   // ─── App settings routes (public — no credentials exposed) ──────────────────
 
   app.get("/api/settings", async (req, res) => {
