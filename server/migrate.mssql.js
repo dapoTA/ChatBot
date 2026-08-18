@@ -59,7 +59,22 @@ const statements = [
      max_tokens          INT NOT NULL DEFAULT 1500,
      frequency_penalty   FLOAT NOT NULL DEFAULT 0,
      presence_penalty    FLOAT NOT NULL DEFAULT 0,
+     enable_chat_log     BIT NOT NULL DEFAULT 0,
      updated_at          DATETIME2 DEFAULT GETDATE()
+   )`,
+
+  // Add enable_chat_log to existing app_settings tables (idempotent)
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'enable_chat_log')
+   ALTER TABLE app_settings ADD enable_chat_log BIT NOT NULL DEFAULT 0`,
+
+  `IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='chat_logs' AND xtype='U')
+   CREATE TABLE chat_logs (
+     id                  INT IDENTITY(1,1) PRIMARY KEY,
+     session_id          NVARCHAR(255) NOT NULL,
+     username            NVARCHAR(255),
+     user_message        NVARCHAR(MAX) NOT NULL,
+     assistant_response  NVARCHAR(MAX) NOT NULL,
+     created_at          DATETIME2 DEFAULT GETDATE()
    )`,
 ];
 

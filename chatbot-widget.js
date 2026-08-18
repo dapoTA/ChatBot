@@ -21,9 +21,16 @@
   function injectWidget() {
     if (document.getElementById("sp-chatbot-frame")) return;
 
+    // Pass the SharePoint user's Windows login name to the chatbot for logging.
+    // _spPageContextInfo is available on all SP2019 on-prem pages.
+    var loginName = (window._spPageContextInfo && window._spPageContextInfo.userLoginName) || "";
+    var src = loginName
+      ? CHATBOT_URL + "?spuser=" + encodeURIComponent(loginName)
+      : CHATBOT_URL;
+
     var frame = document.createElement("iframe");
     frame.id    = "sp-chatbot-frame";
-    frame.src   = CHATBOT_URL;
+    frame.src   = src;
     frame.title = "ON-PNT ChatBot";
     frame.setAttribute("allowtransparency", "true");
     frame.setAttribute("frameborder", "0");

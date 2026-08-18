@@ -256,7 +256,7 @@ export async function registerRoutes(httpServer, app) {
 
   app.post(api.chat.send.path, async (req, res) => {
     try {
-      const { message } = api.chat.send.input.parse(req.body);
+      const { message, username, sessionId } = api.chat.send.input.parse(req.body);
 
       await storage.createMessage({ role: 'user', content: message });
 
@@ -345,6 +345,17 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
       const aiResponse = completion.choices[0].message.content || "I couldn't generate a response.";
       const savedMessage = await storage.createMessage({ role: 'assistant', content: aiResponse });
+
+      // Write chat log (fire-and-forget, never blocks the response)
+      if (appCfg?.enableChatLog) {
+        storage.createChatLog({
+          sessionId: sessionId || 'unknown',
+          username:  username  || null,
+          userMessage:       message,
+          assistantResponse: aiResponse,
+        }).catch((err) => console.error('[chat-log] write failed:', err.message));
+      }
+
       res.json(savedMessage);
 
     } catch (error) {
@@ -369,7 +380,39 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       maxTokens: settings?.maxTokens ?? 1500,
       frequencyPenalty: settings?.frequencyPenalty ?? 0,
       presencePenalty: settings?.presencePenalty ?? 0,
+      enableChatLog: settings?.enableChatLog ?? false,
     });
+  });
+
+  // ─── Chat log export ──────────────────────────────────────────────────────
+
+  app.get("/api/chat-logs", async (req, res) => {
+    try {
+      const { from, to } = req.query;
+      const logs = await storage.getChatLogs(from || null, to || null);
+
+      const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const header = 'id,created_at,username,session_id,user_message,assistant_response';
+      const rows = logs.map((log) => [
+        log.id,
+        log.createdAt instanceof Date ? log.createdAt.toISOString() : (log.createdAt ?? ''),
+        escape(log.username ?? ''),
+        escape(log.sessionId),
+        escape(log.userMessage),
+        escape(log.assistantResponse),
+      ].join(','));
+
+      const csv = [header, ...rows].join('\r\n');
+      const filename = `chat-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // BOM so Excel opens it correctly without a UTF-8 import wizard
+      res.send('\uFEFF' + csv);
+    } catch (err) {
+      console.error('GET /api/chat-logs error:', err);
+      res.status(500).json({ message: 'Failed to export chat logs.' });
+    }
   });
 
   app.post("/api/settings", async (req, res) => {

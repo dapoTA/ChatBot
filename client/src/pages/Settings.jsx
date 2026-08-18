@@ -20,6 +20,7 @@ import {
   Clock,
   AlertTriangle,
   Bot,
+  Download,
 } from "lucide-react";
 import { extractStyledPhrases, extractGlobalResponseStyle } from "@/lib/styleParser";
 import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
@@ -72,6 +73,9 @@ const sharepointSchema = z.object({
 export default function Settings() {
   const { toast } = useToast();
   const [testResult, setTestResult] = useState(null);
+  const [enableChatLog, setEnableChatLog] = useState(false);
+  const [logFrom, setLogFrom] = useState("");
+  const [logTo, setLogTo] = useState("");
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
@@ -82,6 +86,46 @@ export default function Settings() {
   const { data: config } = useQuery({
     queryKey: ["/api/sharepoint/config"],
   });
+
+  // ─── Chat logging toggle ───────────────────────────────────────────────────
+
+  const logToggleLoaded = useRef(false);
+  useEffect(() => {
+    if (appSettingsData && !logToggleLoaded.current) {
+      logToggleLoaded.current = true;
+      setEnableChatLog(appSettingsData.enableChatLog ?? false);
+    }
+  }, [appSettingsData]);
+
+  const saveLogToggle = useMutation({
+    mutationFn: (enabled) => apiRequest("POST", "/api/settings", { enableChatLog: enabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: enableChatLog ? "Chat logging enabled" : "Chat logging disabled" });
+    },
+    onError: () => {
+      toast({ title: "Save failed", description: "Could not update logging setting.", variant: "destructive" });
+    },
+  });
+
+  const handleLogToggle = (v) => {
+    setEnableChatLog(v);
+    saveLogToggle.mutate(v);
+  };
+
+  const handleExportLogs = () => {
+    const params = new URLSearchParams();
+    if (logFrom) params.set("from", logFrom);
+    if (logTo)   params.set("to",   logTo);
+    const url = `/api/chat-logs${params.toString() ? `?${params}` : ""}`;
+    // Use a temporary anchor to trigger a file download
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   // ─── Appearance form ───────────────────────────────────────────────────────
 
@@ -493,6 +537,67 @@ export default function Settings() {
             </Button>
           </div>
         </form>
+
+        {/* ── Chat Logging ────────────────────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card p-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+              Chat Logging
+            </h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              When enabled, every conversation is recorded with the user's Windows/SharePoint login name.
+              Intended for testing only — disable before final release.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+            <div>
+              <p className="text-sm font-medium text-foreground">Enable chat logging</p>
+              <p className="text-xs text-muted-foreground">
+                Saves prompt, response, username, and session ID to the database
+              </p>
+            </div>
+            <Switch
+              checked={enableChatLog}
+              onCheckedChange={handleLogToggle}
+              disabled={saveLogToggle.isPending}
+              data-testid="switch-chat-log"
+            />
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Export logs as CSV
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">From date</label>
+                <input
+                  type="date"
+                  value={logFrom}
+                  onChange={(e) => setLogFrom(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">To date</label>
+                <input
+                  type="date"
+                  value={logTo}
+                  onChange={(e) => setLogTo(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Leave both dates blank to export all logs.
+            </p>
+            <Button variant="outline" onClick={handleExportLogs} data-testid="button-export-logs">
+              <Download className="w-4 h-4 mr-2" />
+              Download CSV
+            </Button>
+          </div>
+        </div>
 
         {/* ── SharePoint Connection ───────────────────────────────────────── */}
         <form onSubmit={sharepointForm.handleSubmit((d) => saveSharepoint.mutate(d))} className="space-y-4">

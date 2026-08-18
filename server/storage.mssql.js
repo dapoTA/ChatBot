@@ -60,7 +60,20 @@ function mapAppSettings(row) {
     maxTokens: row.max_tokens,
     frequencyPenalty: row.frequency_penalty,
     presencePenalty: row.presence_penalty,
+    enableChatLog: row.enable_chat_log === true || row.enable_chat_log === 1,
     updatedAt: row.updated_at,
+  };
+}
+
+function mapChatLog(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    username: row.username,
+    userMessage: row.user_message,
+    assistantResponse: row.assistant_response,
+    createdAt: row.created_at,
   };
 }
 
@@ -237,6 +250,7 @@ export class DatabaseStorage {
       maxTokens:         settings.maxTokens         ?? existingRow?.max_tokens         ?? 1500,
       frequencyPenalty:  settings.frequencyPenalty  ?? existingRow?.frequency_penalty  ?? 0,
       presencePenalty:   settings.presencePenalty   ?? existingRow?.presence_penalty   ?? 0,
+      enableChatLog:     settings.enableChatLog     ?? (existingRow?.enable_chat_log === 1 || existingRow?.enable_chat_log === true) ?? false,
     };
 
     if (existingRow) {
@@ -251,6 +265,7 @@ export class DatabaseStorage {
         .input("max_tokens", sql.Int, merged.maxTokens)
         .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
         .input("presence_penalty", sql.Float, merged.presencePenalty)
+        .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
         .query(`UPDATE app_settings SET
                   assistant_name = @assistant_name,
                   welcome_message = @welcome_message,
@@ -260,6 +275,7 @@ export class DatabaseStorage {
                   max_tokens = @max_tokens,
                   frequency_penalty = @frequency_penalty,
                   presence_penalty = @presence_penalty,
+                  enable_chat_log = @enable_chat_log,
                   updated_at = GETDATE()
                 WHERE id = @id`);
     } else {
@@ -273,15 +289,45 @@ export class DatabaseStorage {
         .input("max_tokens", sql.Int, merged.maxTokens)
         .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
         .input("presence_penalty", sql.Float, merged.presencePenalty)
+        .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
         .query(`INSERT INTO app_settings
                   (assistant_name, welcome_message, not_found_message, custom_instructions,
-                   temperature, top_p, max_tokens, frequency_penalty, presence_penalty)
+                   temperature, top_p, max_tokens, frequency_penalty, presence_penalty, enable_chat_log)
                 VALUES
                   (@assistant_name, @welcome_message, @not_found_message, @custom_instructions,
-                   @temperature, @top_p, @max_tokens, @frequency_penalty, @presence_penalty)`);
+                   @temperature, @top_p, @max_tokens, @frequency_penalty, @presence_penalty, @enable_chat_log)`);
     }
 
     return this.getAppSettings();
+  }
+
+  async createChatLog(log) {
+    const pool = await getPool();
+    const result = await pool.request()
+      .input("session_id", sql.NVarChar(255), log.sessionId)
+      .input("username", sql.NVarChar(255), log.username ?? null)
+      .input("user_message", sql.NVarChar(sql.MAX), log.userMessage)
+      .input("assistant_response", sql.NVarChar(sql.MAX), log.assistantResponse)
+      .query(`INSERT INTO chat_logs (session_id, username, user_message, assistant_response)
+              OUTPUT INSERTED.*
+              VALUES (@session_id, @username, @user_message, @assistant_response)`);
+    return mapChatLog(result.recordset[0]);
+  }
+
+  async getChatLogs(from, to) {
+    const pool = await getPool();
+    const toDate = to ? (() => { const d = new Date(to); d.setDate(d.getDate() + 1); return d; })() : null;
+    const result = await pool.request()
+      .input("from_dt", sql.DateTime2, from ? new Date(from) : null)
+      .input("to_dt",   sql.DateTime2, toDate)
+      .query(`
+        SELECT id, session_id, username, user_message, assistant_response, created_at
+        FROM chat_logs
+        WHERE (@from_dt IS NULL OR created_at >= @from_dt)
+          AND (@to_dt   IS NULL OR created_at <  @to_dt)
+        ORDER BY created_at DESC
+      `);
+    return result.recordset.map(mapChatLog);
   }
 }
 

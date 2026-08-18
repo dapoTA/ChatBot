@@ -17,6 +17,14 @@ export function ChatWidget() {
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
 
+  // Read SharePoint user from URL param injected by the embed script / SPFx customizer.
+  // Lazy initializer runs once on mount — no effect needed.
+  const [spUser] = useState(() =>
+    new URLSearchParams(window.location.search).get("spuser") ?? ""
+  );
+  // Session ID: generated on first open, cleared on close so a new session starts next time.
+  const [sessionId, setSessionId] = useState("");
+
   const { data: settings } = useQuery({
     queryKey: ["/api/settings"],
   });
@@ -38,6 +46,8 @@ export function ChatWidget() {
   const handleOpen = () => {
     setIsOpen(true);
     setIsMinimized(false);
+    // Assign a fresh session UUID the first time the widget opens (or after a close).
+    setSessionId((prev) => prev || crypto.randomUUID());
     notifyParent("chatbot:open");
   };
 
@@ -47,6 +57,7 @@ export function ChatWidget() {
     setMessages([]);
     setIsPending(false);
     setIsError(false);
+    setSessionId("");
     apiRequest("DELETE", "/api/chat").catch(() => {});
     notifyParent("chatbot:close");
   };
@@ -74,7 +85,11 @@ export function ChatWidget() {
     setIsError(false);
 
     try {
-      const res = await apiRequest("POST", "/api/chat", { message });
+      const res = await apiRequest("POST", "/api/chat", {
+        message,
+        ...(spUser    ? { username:  spUser    } : {}),
+        ...(sessionId ? { sessionId: sessionId } : {}),
+      });
       if (!res.ok) throw new Error("Failed");
       const assistantMsg = await res.json();
       setMessages((prev) => [...prev, assistantMsg]);

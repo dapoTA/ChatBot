@@ -52,7 +52,11 @@ export const api = {
     send: {
       method: 'POST',
       path: '/api/chat',
-      input: z.object({ message: z.string() }),
+      input: z.object({
+        message: z.string(),
+        username: z.string().optional(),
+        sessionId: z.string().optional(),
+      }),
       responses: {
         200: z.any(),
         500: errorSchemas.internal,

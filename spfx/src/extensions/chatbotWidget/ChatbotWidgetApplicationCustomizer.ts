@@ -39,9 +39,16 @@ export default class ChatbotWidgetApplicationCustomizer
   private _injectWidget(): void {
     const chatbotUrl: string = (this.properties.chatbotUrl || DEFAULT_CHATBOT_URL).replace(/\/$/, '');
 
+    // Append the current user's login name so the chatbot can log it.
+    // pageContext.user.loginName is e.g. "dapo@technicalassurance.com"
+    const loginName: string = this.context.pageContext.user.loginName || '';
+    const iframeSrc: string = loginName
+      ? `${chatbotUrl}?spuser=${encodeURIComponent(loginName)}`
+      : chatbotUrl;
+
     const frame: HTMLIFrameElement = document.createElement('iframe');
     frame.id = FRAME_ID;
-    frame.src = chatbotUrl;
+    frame.src = iframeSrc;
     frame.title = 'ON-PNT ChatBot';
     frame.setAttribute('allowtransparency', 'true');
     frame.setAttribute('frameborder', '0');

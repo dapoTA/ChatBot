@@ -1,5 +1,6 @@
 import { pgTable, text, serial, boolean, timestamp, real, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
 
 export const documents = pgTable("documents", {
   id: serial("id").primaryKey(),
@@ -50,10 +51,25 @@ export const appSettings = pgTable("app_settings", {
   maxTokens: integer("max_tokens").notNull().default(1500),
   frequencyPenalty: real("frequency_penalty").notNull().default(0),
   presencePenalty: real("presence_penalty").notNull().default(0),
+  enableChatLog: boolean("enable_chat_log").notNull().default(false),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertAppSettingsSchema = createInsertSchema(appSettings).omit({ id: true, updatedAt: true });
+export const chatLogs = pgTable("chat_logs", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  username: text("username"),
+  userMessage: text("user_message").notNull(),
+  assistantResponse: text("assistant_response").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// enableChatLog is optional so partial saves (appearance-only, AI-params-only)
+// don't accidentally overwrite the toggle back to false.
+export const insertAppSettingsSchema = createInsertSchema(appSettings)
+  .omit({ id: true, updatedAt: true })
+  .extend({ enableChatLog: z.boolean().optional() });
+export const insertChatLogSchema = createInsertSchema(chatLogs).omit({ id: true, createdAt: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertSharepointConfigSchema = createInsertSchema(sharepointConfigs).omit({

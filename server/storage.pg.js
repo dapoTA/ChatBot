@@ -1,6 +1,6 @@
 import { db } from "./db.js";
-import { documents, messages, sharepointConfigs, appSettings } from "../shared/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { documents, messages, sharepointConfigs, appSettings, chatLogs } from "../shared/schema.js";
+import { eq, desc, gte, lte, and } from "drizzle-orm";
 import { encrypt, decrypt } from "./crypto.js";
 
 // Fields in sharepoint_configs that are encrypted at rest
@@ -111,6 +111,25 @@ export class DatabaseStorage {
       const [created] = await db.insert(appSettings).values(settings).returning();
       return created;
     }
+  }
+
+  async createChatLog(log) {
+    const [row] = await db.insert(chatLogs).values(log).returning();
+    return row;
+  }
+
+  async getChatLogs(from, to) {
+    const conditions = [];
+    if (from) conditions.push(gte(chatLogs.createdAt, new Date(from)));
+    if (to) {
+      const toDate = new Date(to);
+      toDate.setDate(toDate.getDate() + 1);
+      conditions.push(lte(chatLogs.createdAt, toDate));
+    }
+    let q = db.select().from(chatLogs);
+    if (conditions.length === 1) q = q.where(conditions[0]);
+    else if (conditions.length > 1) q = q.where(and(...conditions));
+    return await q.orderBy(desc(chatLogs.createdAt));
   }
 }
 
