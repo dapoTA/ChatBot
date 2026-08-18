@@ -12,29 +12,6 @@ const __dirname = typeof __filename !== "undefined"
   ? path.dirname(__filename)
   : path.dirname(fileURLToPath(import.meta.url));
 
-// Extracts the Windows username from an NTLM Type 3 (authentication) token.
-// IIS passes the raw Negotiate/NTLM header through to Node when Windows Auth
-// is enabled; LOGON_USER is not available via URL Rewrite because authentication
-// runs after URL Rewrite in the IIS pipeline.
-function extractNtlmUsername(authHeader) {
-  if (!authHeader) return null;
-  const m = authHeader.match(/^(?:Negotiate|NTLM)\s+([A-Za-z0-9+/=]+)/);
-  if (!m) return null;
-  try {
-    const buf = Buffer.from(m[1], 'base64');
-    if (buf.length < 52) return null;
-    if (buf.toString('ascii', 0, 8) !== 'NTLMSSP\0') return null;
-    if (buf.readUInt32LE(8) !== 3) return null; // Must be Type 3 (final auth message)
-    // UserName security buffer is at offset 36: length(2) + allocated(2) + offset(4)
-    const userLen    = buf.readUInt16LE(36);
-    const userOffset = buf.readUInt32LE(40);
-    if (userLen === 0 || userOffset + userLen > buf.length) return null;
-    return buf.toString('utf16le', userOffset, userOffset + userLen) || null;
-  } catch {
-    return null;
-  }
-}
-
 //import OpenAI from "openai";
 
 console.log("DEPLOYMENT:", process.env.AZURE_OPENAI_DEPLOYMENT);
@@ -372,12 +349,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
       // Resolve username (priority order):
       //  1. ?spuser= param — injected by SharePoint embed scripts (on-prem & SPFx)
-      //  2. NTLM token — decoded from the Authorization header when Windows Auth is
-      //     enabled in IIS (direct browser access); LOGON_USER via URL Rewrite is not
-      //     usable because URL Rewrite fires before authentication in the IIS pipeline
+      //  2. iisnode's promoted AUTH_USER — populated by IIS after Windows
+      //     authentication completes and available on every request
       const resolvedUsername =
         username ||
-        extractNtlmUsername(req.headers['authorization']) ||
+        req.headers['x-iisnode-auth_user'] ||
         null;
 
       // Write chat log (fire-and-forget, never blocks the response)
