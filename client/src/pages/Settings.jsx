@@ -118,7 +118,7 @@ export default function Settings() {
   const [enableChatLog, setEnableChatLog] = useState(false);
   const [logFrom, setLogFrom] = useState("");
   const [logTo, setLogTo] = useState("");
-  const [activeTab, setActiveTab] = useState("general");
+  const [activeTab, setActiveTab] = useState("knowledge-sources");
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
@@ -552,115 +552,114 @@ export default function Settings() {
     || (activeTab === "knowledge-sources" && (sharepointForm.formState.isDirty || editingSourceId !== null));
 
   return (
-    <div className="min-h-screen bg-[#eef4f8] text-foreground">
-      <header className="h-16 bg-[#0b2942] text-white flex items-center justify-between px-5 md:px-8 shadow-sm">
+    <div className="min-h-[100dvh] bg-[#f3f6f8] font-sans text-[#25364c]">
+      <header className="flex h-[68px] items-center justify-between border-b border-[#d8e0e7] bg-[#10263f] px-5 text-white sm:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1e9b75] shadow-inner">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1e765c] shadow-[0_4px_14px_rgba(15,74,56,.3)]">
             <ShieldCheck className="h-5 w-5" />
           </div>
-          <div className="leading-tight">
-            <p className="text-[9px] font-semibold tracking-[0.24em] text-[#8fc9b4] uppercase">Technical Assurance</p>
-            <p className="text-sm font-semibold tracking-tight">inSite Assistant</p>
+          <div className="border-l border-white/20 pl-3 leading-tight">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#a7c8bb]">Technical Assurance</p>
+            <p className="mt-0.5 text-[15px] font-semibold tracking-[-0.01em]">inSite Assistant</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-[#c7d9e5]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#61d39c]" />
-          Configuration
+        <div className="hidden items-center gap-2 text-[11px] text-[#c6d2df] sm:flex">
+          <span className="h-2 w-2 rounded-full bg-[#64c392]" />
+          Configuration workspace
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-4rem)]">
-        <aside className="hidden w-60 shrink-0 border-r border-[#dce7ed] bg-[#f7fafc] px-4 py-7 lg:block">
-          <div className="px-3">
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Administration</p>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+      <div className="mx-auto flex min-h-[calc(100vh-68px)] max-w-[1440px]">
+        <aside className="hidden w-[252px] shrink-0 border-r border-[#dbe3e9] bg-[#edf2f5] px-4 py-7 md:block">
+          <div className="mb-8 px-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8190a2]">Administration</p>
+            <p className="mt-2 text-[12px] leading-5 text-[#617288]">
               Keep the assistant aligned with your portal and assurance standards.
             </p>
           </div>
-          <nav className="mt-8 space-y-1" aria-label="Administration">
-            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+          <nav className="space-y-1" aria-label="Administration">
+            <a href="#" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-[#65768a] hover:bg-white/70">
               <LayoutDashboard className="h-4 w-4" />
               Overview
             </a>
-            <a href="#assistant-settings" className="flex items-center gap-3 rounded-md bg-white px-3 py-2.5 text-xs font-semibold text-[#188b6a] shadow-sm ring-1 ring-[#dfe9e8]">
+            <a href="#assistant-settings" className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5 text-[13px] font-semibold text-[#1e765c] shadow-sm">
               <Sparkles className="h-4 w-4" />
               Assistant
             </a>
-            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+            <a href="#" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-[#65768a] hover:bg-white/70">
               <SlidersHorizontal className="h-4 w-4" />
               Experience
             </a>
-            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+            <a href="#" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-[#65768a] hover:bg-white/70">
               <Activity className="h-4 w-4" />
               Usage
             </a>
           </nav>
-          <div className="my-7 border-t border-[#dce7ed]" />
-          <div className="px-3">
-            <p className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Environment</p>
-            <div className="mt-4 space-y-3 text-xs text-muted-foreground">
-              <div className="flex items-center gap-3 text-[#188b6a]">
+          <div className="mx-3 mt-10 border-t border-[#d7e0e7] pt-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#8190a2]">Environment</p>
+            <div className="mt-3 space-y-2 text-[11px] text-[#8795a4]">
+              <div className="flex items-center gap-2 text-[12px] text-[#51657a]">
                 <FolderOpen className="h-4 w-4" />
                 Production portal
               </div>
-              <div className="flex items-center gap-3">
-                <LockKeyhole className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                <LockKeyhole className="h-[13px] w-[13px]" />
                 Admin access only
               </div>
             </div>
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-8 md:px-8 lg:px-12">
-          <div className="mx-auto max-w-5xl space-y-6">
+        <main className="min-w-0 flex-1 px-5 py-7 sm:px-8 lg:px-12">
+          <div className="mx-auto max-w-[1120px] space-y-7">
             <div id="assistant-settings" className="flex items-end justify-between gap-4">
               <div>
-                <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                <div className="mb-2 flex items-center gap-2 text-[11px] font-medium text-[#7c8b9c]">
                   <span>Assistant</span>
                   <ChevronRight className="h-3 w-3" />
-                  <span className="font-medium text-[#188b6a]">Settings</span>
+                  <span className="text-[#1e765c]">Settings</span>
                 </div>
-                <h1 className="text-2xl font-semibold tracking-tight text-[#102a43]" data-testid="text-settings-title">
+                <h1 className="text-[27px] font-semibold tracking-[-0.035em] text-[#172d46]" data-testid="text-settings-title">
                   Assistant settings
                 </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1.5 text-[13px] text-[#718198]">
                   Control how inSite Assistant is presented, grounded, and maintained.
                 </p>
               </div>
-              <div className="hidden items-center gap-2 pb-1 text-xs text-muted-foreground sm:flex">
-                <CheckCircle className={`h-3.5 w-3.5 ${activeHasUnsavedChanges ? "text-amber-500" : "text-[#1e9b75]"}`} />
+              <div className={`hidden items-center gap-2 pb-1 text-[11px] sm:flex ${activeHasUnsavedChanges ? "text-[#a16a33]" : "text-[#477b68]"}`}>
+                <span className={`h-2 w-2 rounded-full ${activeHasUnsavedChanges ? "bg-[#d18a3d]" : "bg-[#43a274]"}`} />
                 {activeHasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
               </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="overflow-hidden rounded-xl border border-[#dce7ed] bg-white shadow-sm">
-              <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b border-[#e2ebef] bg-white p-0 sm:grid-cols-4">
-                <TabsTrigger value="general" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="overflow-hidden rounded-xl border border-[#d8e1e8] bg-white shadow-[0_8px_30px_rgba(35,57,77,.06)]">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b border-[#dce4e9] bg-[#fbfcfd] px-2 py-0 sm:grid-cols-4 sm:px-4">
+                <TabsTrigger value="general" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <SlidersHorizontal className="h-4 w-4" />
                     <span><strong className="block font-semibold">General</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Branding and presentation</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="knowledge-sources" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                <TabsTrigger value="knowledge-sources" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <FolderOpen className="h-4 w-4" />
                     <span><strong className="block font-semibold">Knowledge Sources</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Where answers come from</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="chat-behavior" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                <TabsTrigger value="chat-behavior" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <MessageSquare className="h-4 w-4" />
                     <span><strong className="block font-semibold">Chat Behavior</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Response guardrails</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="logging-exports" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                <TabsTrigger value="logging-exports" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <BarChart3 className="h-4 w-4" />
                     <span><strong className="block font-semibold">Logging &amp; Exports</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Records and retention</span></span>
                   </span>
                 </TabsTrigger>
               </TabsList>
-              <div className="p-4 sm:p-6">
+              <div className="flex flex-col p-6 sm:p-8 lg:p-10">
 
         {/* ── Widget Appearance ───────────────────────────────────────────── */}
         <div
@@ -953,19 +952,20 @@ export default function Settings() {
 
         {/* ── Knowledge Sources ───────────────────────────────────────────── */}
         <div
-          className={activeTab === "knowledge-sources" ? "block space-y-6" : "hidden"}
+          className={activeTab === "knowledge-sources" ? "contents" : "hidden"}
           role="tabpanel"
           aria-label="Knowledge Sources settings"
           data-testid="settings-panel-knowledge-sources"
         >
-        <section id="knowledge-sources" className="rounded-xl border border-border bg-card p-6 space-y-5" data-testid="knowledge-sources-section">
+        <section id="knowledge-sources" className="order-2 mt-7 space-y-5" data-testid="knowledge-sources-section">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                Knowledge Sources
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Named sources</p>
+              <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">
+                Expose the libraries employees recognise
               </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Choose which SharePoint knowledge area the assistant should use. Global Custom Instructions still apply to every source.
+              <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-[#718198]">
+                Add as many sources as your portal needs. Each source keeps its own response guidance and escalation route.
               </p>
             </div>
             <Button type="button" variant="outline" onClick={openNewSourceEditor} data-testid="button-add-source">
@@ -974,7 +974,7 @@ export default function Settings() {
             </Button>
           </div>
 
-          <div className="space-y-2">
+          <div className="overflow-hidden rounded-xl border border-[#dbe3e9]">
             {knowledgeSources.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border px-4 py-5 text-sm text-muted-foreground" data-testid="knowledge-sources-empty">
                 No knowledge sources have been configured yet. Add a named SharePoint library to get started.
@@ -985,10 +985,10 @@ export default function Settings() {
                 return (
                   <div
                     key={source.id}
-                    className={`rounded-lg border transition-colors ${isEditing ? "border-primary/60 bg-primary/5" : "border-border bg-muted/20"}`}
+                    className={`border-b border-[#edf1f3] transition-colors ${isEditing ? "bg-[#f4faf7]" : "bg-white"}`}
                     data-testid={`knowledge-source-${source.id}`}
                   >
-                    <div className="flex items-start gap-3 p-4">
+                    <div className="flex items-center gap-3 px-4 py-3.5">
                       <button
                         type="button"
                         className="flex-1 min-w-0 text-left"
@@ -997,7 +997,8 @@ export default function Settings() {
                         data-testid={`button-expand-source-${source.id}`}
                       >
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{source.name}</span>
+                          <FolderOpen className="h-4 w-4 text-[#1e765c]" />
+                          <span className="text-[12px] font-semibold text-[#344a60]">{source.name}</span>
                           <span className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
                             source.enabled
                               ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
@@ -1011,7 +1012,7 @@ export default function Settings() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                        <p className="mt-1 truncate text-[11px] text-[#596d82]">
                           {source.isPortalWide
                             ? "Searches the full configured SharePoint site collection."
                             : `Library: ${source.libraryName || "Not configured"}`}
@@ -1067,12 +1068,12 @@ export default function Settings() {
                     </div>
 
                     {isEditing && (
-                      <form onSubmit={handleSaveKnowledgeSource} className="border-t border-border p-4 space-y-4" data-testid={`source-editor-${source.id}`}>
+                      <form onSubmit={handleSaveKnowledgeSource} className="space-y-4 border-t border-[#dce7e1] bg-[#f4faf7] p-4" data-testid={`source-editor-${source.id}`}>
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <h3 className="text-sm font-semibold text-foreground">Edit Source</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              Keep advanced response and escalation guidance with the source it serves.
+                            <h3 className="text-[13px] font-semibold text-[#315f50]">Edit knowledge source</h3>
+                            <p className="mt-1 text-[11px] leading-5 text-[#6f897f]">
+                              These instructions and escalation details apply only when this source is selected.
                             </p>
                           </div>
                           <Button type="button" variant="ghost" size="sm" onClick={closeSourceEditor}>
@@ -1532,15 +1533,17 @@ export default function Settings() {
 
         {/* ── SharePoint Connection ───────────────────────────────────────── */}
         <div
-          className={activeTab === "knowledge-sources" ? "block space-y-6" : "hidden"}
+          className={activeTab === "knowledge-sources" ? "contents" : "hidden"}
           aria-label="SharePoint connection settings"
           data-testid="settings-panel-sharepoint"
         >
-        <form onSubmit={sharepointForm.handleSubmit((d) => saveSharepoint.mutate(d))} className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-              SharePoint Connection
-            </h2>
+        <form onSubmit={sharepointForm.handleSubmit((d) => saveSharepoint.mutate(d))} className="order-1 space-y-4">
+          <div className="mb-6">
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">SharePoint connection</p>
+            <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Connect the knowledge source</h2>
+            <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-[#718198]">Configure the active SharePoint environment, test access, then choose the named document libraries exposed to employees.</p>
+          </div>
+          <div className="space-y-5 rounded-xl border border-[#dbe3e9] bg-white p-5">
 
             {/* ── Mode toggle ─────────────────────────────────────────────── */}
             <div className="space-y-2">
@@ -1830,7 +1833,7 @@ export default function Settings() {
         </form>
 
         {/* ── Document Sync ────────────────────────────────────────────────── */}
-        <div className="rounded-xl border border-border bg-card p-6">
+        <div className="order-3 mt-7 rounded-xl border border-[#dbe3e9] bg-[#fbfcfd] p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-sm font-semibold text-foreground">Sync Document Library</h2>
@@ -1864,7 +1867,7 @@ export default function Settings() {
         </div>
 
         {/* Deployment notice */}
-        <div className="rounded-lg bg-muted/40 border border-border px-4 py-3 text-xs text-muted-foreground">
+        <div className="order-4 mt-5 rounded-lg border border-[#dce5ea] bg-[#f6f9fb] px-4 py-3 text-[11px] leading-5 text-[#65788c]">
           <strong className="text-foreground">On-premises mode:</strong> The server must have direct network access to your SharePoint environment. Authentication uses NTLM with Active Directory credentials.{" "}
           <strong className="text-foreground">SharePoint Online mode:</strong> Requires an Azure AD app registration with Sites.Read.All permission and admin consent.
         </div>
