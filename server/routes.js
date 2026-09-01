@@ -231,6 +231,168 @@ function preprocessInstructions(instructions) {
   return instructions;
 }
 
+const DEFAULT_KNOWLEDGE_SOURCES = [
+  {
+    name: "All Portal Sources",
+    libraryName: null,
+    description: "Searches the full configured SharePoint site collection.",
+    instructions: "",
+    smeTeam: "",
+    contactMethod: "",
+    contactDetails: "",
+    escalationMessage: "",
+    enabled: true,
+    isPortalWide: true,
+  },
+  {
+    name: "PTO",
+    libraryName: "PTO",
+    description: "Searches the PTO and leave information library.",
+    instructions: "",
+    smeTeam: "",
+    contactMethod: "",
+    contactDetails: "",
+    escalationMessage: "",
+    enabled: true,
+    isPortalWide: false,
+  },
+  {
+    name: "HR",
+    libraryName: "HR",
+    description: "Searches the HR information library.",
+    instructions: "",
+    smeTeam: "",
+    contactMethod: "",
+    contactDetails: "",
+    escalationMessage: "",
+    enabled: true,
+    isPortalWide: false,
+  },
+  {
+    name: "Company Policies",
+    libraryName: "Company Policies",
+    description: "Searches the company policies library.",
+    instructions: "",
+    smeTeam: "",
+    contactMethod: "",
+    contactDetails: "",
+    escalationMessage: "",
+    enabled: true,
+    isPortalWide: false,
+  },
+];
+
+function normaliseSourceValue(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function knowledgeSourceDocumentKey(source) {
+  return `knowledge-source:${source.id}`;
+}
+
+function requestUsername(req) {
+  return String(
+    req.headers["x-iisnode-auth_user"]
+    || req.user?.username
+    || "",
+  ).trim();
+}
+
+function requireKnowledgeSourceAdmin(req, res, next) {
+  if (process.env.NODE_ENV !== "production") return next();
+
+  const username = requestUsername(req);
+  if (!username) {
+    return res.status(401).json({ message: "Windows authentication is required." });
+  }
+
+  const allowedAdmins = String(process.env.ADMIN_USERS || "")
+    .split(/[,\n;]/)
+    .map(normaliseSourceValue)
+    .filter(Boolean);
+  if (allowedAdmins.length === 0) {
+    return res.status(503).json({
+      message: "Knowledge source administration is not configured. Set ADMIN_USERS on the server.",
+    });
+  }
+
+  const normalisedUsername = normaliseSourceValue(username);
+  const shortUsername = normalisedUsername.split(/[\\/]/).pop();
+  const permitted = allowedAdmins.some((admin) => {
+    const shortAdmin = admin.split(/[\\/]/).pop();
+    return admin === normalisedUsername || shortAdmin === shortUsername;
+  });
+
+  if (!permitted) {
+    return res.status(403).json({ message: "Administrator access is required." });
+  }
+  next();
+}
+
+export function sourceEscalationText(source) {
+  if (!source) return "";
+
+  const routing = [];
+  if (source.escalationMessage?.trim()) routing.push(source.escalationMessage.trim());
+
+  const contact = [
+    source.smeTeam?.trim(),
+    source.contactMethod?.trim(),
+    source.contactDetails?.trim(),
+  ].filter(Boolean);
+
+  if (contact.length) {
+    routing.push(`Subject-matter expert contact: ${contact.join(" · ")}`);
+  }
+
+  return routing.join("\n\n").trim();
+}
+
+export function documentsForSource(documents, source, sharepointConfig, knowledgeSources = []) {
+  if (!source) return documents;
+  if (source.isPortalWide) {
+    if (knowledgeSources.length === 0) return documents;
+    const enabledSourceKeys = new Set(
+      knowledgeSources
+        .filter((item) => item.enabled && !item.isPortalWide)
+        .map((item) => knowledgeSourceDocumentKey(item)),
+    );
+    return documents.filter((document) => {
+      const documentSource = String(document.source ?? "");
+      if (normaliseSourceValue(documentSource) === "sharepoint") {
+        const configuredLibrary = normaliseSourceValue(sharepointConfig?.libraryName);
+        const configuredSource = knowledgeSources.find(
+          (item) =>
+            !item.isPortalWide
+            && normaliseSourceValue(item.libraryName) === configuredLibrary,
+        );
+        return configuredSource ? configuredSource.enabled : true;
+      }
+      return !documentSource.startsWith("knowledge-source:")
+        || enabledSourceKeys.has(documentSource);
+    });
+  }
+
+  const sourceNames = new Set(
+    [source.name, source.libraryName, knowledgeSourceDocumentKey(source)]
+      .map(normaliseSourceValue)
+      .filter(Boolean),
+  );
+  const configuredLibrary = normaliseSourceValue(sharepointConfig?.libraryName);
+
+  return documents.filter((document) => {
+    const documentSource = normaliseSourceValue(document.source);
+    if (sourceNames.has(documentSource)) return true;
+
+    // Existing installations labelled synced documents as "sharepoint".
+    // Treat those documents as belonging to the configured library so the
+    // new source selector remains backward compatible.
+    return documentSource === "sharepoint"
+      && configuredLibrary
+      && sourceNames.has(configuredLibrary);
+  });
+}
+
 export async function registerRoutes(httpServer, app) {
 
   // ─── CORS — allow SharePoint and any cross-origin consumer to load the widget ─
@@ -283,6 +445,160 @@ export async function registerRoutes(httpServer, app) {
     res.status(204).send();
   });
 
+  // ─── Knowledge source administration ──────────────────────────────────────
+  app.get(api.knowledgeSources.options.path, async (_req, res) => {
+    const sources = await storage.getKnowledgeSources();
+    res.json(
+      sources
+        .filter((source) => source.enabled)
+        .map((source) => ({
+          id: source.id,
+          name: source.name,
+          description: source.description ?? "",
+          isPortalWide: source.isPortalWide,
+        })),
+    );
+  });
+
+  app.get(api.knowledgeSources.list.path, requireKnowledgeSourceAdmin, async (_req, res) => {
+    res.json(await storage.getKnowledgeSources());
+  });
+
+  app.post(api.knowledgeSources.create.path, requireKnowledgeSourceAdmin, async (req, res) => {
+    try {
+      const input = api.knowledgeSources.create.input.parse(req.body);
+      if (input.isPortalWide) {
+        return res.status(400).json({
+          message: "All Portal Sources is managed automatically and cannot be added.",
+          field: "isPortalWide",
+        });
+      }
+      if (!input.libraryName?.trim()) {
+        return res.status(400).json({
+          message: "A SharePoint library name is required for a named source.",
+          field: "libraryName",
+        });
+      }
+
+      const sources = await storage.getKnowledgeSources();
+      const duplicate = sources.find(
+        (source) => normaliseSourceValue(source.name) === normaliseSourceValue(input.name),
+      );
+      if (duplicate) {
+        return res.status(400).json({
+          message: "A knowledge source with that name already exists.",
+          field: "name",
+        });
+      }
+
+      const created = await storage.createKnowledgeSource({
+        ...input,
+        name: input.name.trim(),
+        libraryName: input.libraryName.trim(),
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join("."),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.patch(api.knowledgeSources.update.path, requireKnowledgeSourceAdmin, async (req, res) => {
+    try {
+      const id = Number.parseInt(req.params.id, 10);
+      const sources = await storage.getKnowledgeSources();
+      const existing = sources.find((source) => source.id === id);
+      if (!existing) {
+        return res.status(404).json({ message: "Knowledge source not found." });
+      }
+
+      const input = api.knowledgeSources.update.input.parse(req.body);
+      if (
+        Object.prototype.hasOwnProperty.call(input, "isPortalWide")
+        && input.isPortalWide !== existing.isPortalWide
+      ) {
+        return res.status(400).json({
+          message: "The portal-wide source type cannot be changed.",
+          field: "isPortalWide",
+        });
+      }
+      const merged = {
+        ...existing,
+        ...input,
+        name: (input.name ?? existing.name).trim(),
+        libraryName: input.libraryName !== undefined
+          ? input.libraryName?.trim() || null
+          : existing.libraryName,
+      };
+
+      if (existing.isPortalWide) {
+        merged.name = existing.name;
+        merged.libraryName = null;
+        merged.enabled = true;
+        merged.isPortalWide = true;
+      } else if (!merged.libraryName) {
+        return res.status(400).json({
+          message: "A SharePoint library name is required for a named source.",
+          field: "libraryName",
+        });
+      }
+
+      const duplicate = sources.find(
+        (source) =>
+          source.id !== id
+          && normaliseSourceValue(source.name) === normaliseSourceValue(merged.name),
+      );
+      if (duplicate) {
+        return res.status(400).json({
+          message: "A knowledge source with that name already exists.",
+          field: "name",
+        });
+      }
+
+      const updated = await storage.updateKnowledgeSource(id, {
+        name: merged.name,
+        libraryName: merged.libraryName,
+        description: merged.description ?? "",
+        instructions: merged.instructions ?? "",
+        smeTeam: merged.smeTeam ?? "",
+        contactMethod: merged.contactMethod ?? "",
+        contactDetails: merged.contactDetails ?? "",
+        escalationMessage: merged.escalationMessage ?? "",
+        enabled: merged.enabled !== false,
+        isPortalWide: merged.isPortalWide === true,
+      });
+      res.json(updated);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join("."),
+        });
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.knowledgeSources.delete.path, requireKnowledgeSourceAdmin, async (req, res) => {
+    const id = Number.parseInt(req.params.id, 10);
+    const sources = await storage.getKnowledgeSources();
+    const source = sources.find((item) => item.id === id);
+    if (!source) return res.status(404).json({ message: "Knowledge source not found." });
+    if (source.isPortalWide) {
+      return res.status(400).json({
+        message: "All Portal Sources is required and cannot be removed.",
+      });
+    }
+    await storage.deleteDocumentsBySource(knowledgeSourceDocumentKey(source));
+    await storage.deleteKnowledgeSource(id);
+    res.status(204).send();
+  });
+
   // ─── Chat routes ─────────────────────────────────────────────────────────────
 
   app.get(api.chat.history.path, async (req, res) => {
@@ -297,11 +613,31 @@ export async function registerRoutes(httpServer, app) {
 
   app.post(api.chat.send.path, async (req, res) => {
     try {
-      const { message, username, sessionId } = api.chat.send.input.parse(req.body);
+      const { message, username, sessionId, sourceId } = api.chat.send.input.parse(req.body);
+
+      const allDocuments = await storage.getDocuments();
+      const knowledgeSources = await storage.getKnowledgeSources();
+      let selectedSource = null;
+      if (sourceId != null) {
+        selectedSource = knowledgeSources.find(
+          (source) => source.id === sourceId && source.enabled,
+        );
+        if (!selectedSource) {
+          return res.status(400).json({ message: "The selected knowledge source is unavailable." });
+        }
+      }
 
       await storage.createMessage({ role: 'user', content: message });
 
-      const docs = await storage.getDocuments();
+      const sharepointConfig = selectedSource
+        ? await storage.getSharepointConfig()
+        : null;
+      const docs = documentsForSource(
+        allDocuments,
+        selectedSource,
+        sharepointConfig,
+        knowledgeSources,
+      );
       const appCfg = await storage.getAppSettings();
       const notFoundMessage = appCfg?.notFoundMessage
         ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.";
@@ -310,6 +646,11 @@ export async function registerRoutes(httpServer, app) {
       // instructions — the Not Found Message field is the sole source of truth.
       const strippedInstructions = stripNotFoundFallback(rawInstructions);
       const customInstructions = preprocessInstructions(strippedInstructions);
+      const sourceInstructions = selectedSource?.instructions?.trim()
+        ? preprocessInstructions(stripNotFoundFallback(selectedSource.instructions.trim()))
+        : null;
+      const configuredEscalation = sourceEscalationText(selectedSource);
+      const effectiveNotFoundMessage = configuredEscalation || notFoundMessage;
 
       const context = docs.map(d =>
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
@@ -317,8 +658,10 @@ export async function registerRoutes(httpServer, app) {
 
       const systemPrompt = `You are a SharePoint document assistant for this organization.
 ${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n` : ''}
+${selectedSource ? `\nKnowledge scope — answer only from the selected "${selectedSource.name}" source. Do not use documents from another source.\n` : ''}
+${sourceInstructions ? `Source-specific instructions — these apply only to the selected knowledge source:\n${sourceInstructions}\n` : ''}
 NOT FOUND OVERRIDE: If the answer is not found in the approved documents below, you MUST respond with EXACTLY the following message — no more, no less. This overrides any alternative not-found or fallback wording that may appear in the owner instructions above:
-${notFoundMessage}
+${effectiveNotFoundMessage}
 
 For all other responses, the owner instructions above control your tone, style, and format. The restriction below applies only to factual content:
 
@@ -416,7 +759,21 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
   // ─── App settings routes (public — no credentials exposed) ──────────────────
 
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings/public", async (_req, res) => {
+    try {
+      const s = await storage.getAppSettings();
+      res.json({
+        assistantName: s?.assistantName ?? "inSite Assistant",
+        welcomeMessage: s?.welcomeMessage ?? "Ask me anything about Human Resources or Paid Time Off.",
+        responseStyle: extractGlobalResponseStyle(s?.customInstructions ?? ""),
+      });
+    } catch (err) {
+      console.error("GET /api/settings/public error:", err);
+      res.status(500).json({ message: err?.message ?? "Internal server error" });
+    }
+  });
+
+  app.get("/api/settings", requireKnowledgeSourceAdmin, async (req, res) => {
     const settings = await storage.getAppSettings();
     const customInstructions = settings?.customInstructions ?? "";
     res.json({
@@ -465,7 +822,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post("/api/settings", requireKnowledgeSourceAdmin, async (req, res) => {
     try {
       const input = insertAppSettingsSchema.parse(req.body);
       const saved = await storage.upsertAppSettings(input);
@@ -562,36 +919,66 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
 
     let synced = 0;
     let failed = 0;
+    let syncedSources = 0;
+    let failedSources = 0;
 
     try {
-      await storage.deleteDocumentsBySource("sharepoint");
+      const knowledgeSources = (await storage.getKnowledgeSources())
+        .filter((source) => source.enabled && !source.isPortalWide && source.libraryName);
+      if (knowledgeSources.length === 0) {
+        return res.status(400).json({
+          message: "Enable at least one named knowledge source before syncing.",
+        });
+      }
 
-      const items = await fetchLibraryItems(config);
-      console.log(`SharePoint sync: found ${items.length} files in "${config.libraryName}"`);
-
-      for (const item of items) {
+      for (const source of knowledgeSources) {
+        const sourceConfig = { ...config, libraryName: source.libraryName };
         try {
-          const docWithContent = await fetchDocumentContent(config, item);
-          await storage.createDocument({
-            title: docWithContent.title,
-            content: docWithContent.content,
-            type: "document",
-            url: docWithContent.url,
-            source: "sharepoint",
-          });
-          synced++;
+          const items = await fetchLibraryItems(sourceConfig);
+          console.log(`SharePoint sync: found ${items.length} files in "${source.libraryName}"`);
+
+          const importedDocuments = [];
+          for (const item of items) {
+            try {
+              const docWithContent = await fetchDocumentContent(sourceConfig, item);
+              importedDocuments.push({
+                title: docWithContent.title,
+                content: docWithContent.content,
+                type: "document",
+                url: docWithContent.url,
+                source: knowledgeSourceDocumentKey(source),
+              });
+            } catch (err) {
+              console.error(`Failed to sync "${item.title}" from "${source.name}":`, err?.message);
+              failed++;
+            }
+          }
+
+          // Replace only this source after its library was listed successfully,
+          // so one failing source cannot erase another source's indexed content.
+          await storage.deleteDocumentsBySource(knowledgeSourceDocumentKey(source));
+          for (const document of importedDocuments) {
+            await storage.createDocument(document);
+            synced++;
+          }
+          syncedSources++;
         } catch (err) {
-          console.error(`Failed to sync "${item.title}":`, err?.message);
-          failed++;
+          failedSources++;
+          console.error(`Failed to sync source "${source.name}":`, err?.message);
         }
       }
 
-      await storage.updateSharepointSyncTime();
+      if (syncedSources > 0) {
+        // Remove the pre-source-model corpus only after at least one named source
+        // has been imported successfully.
+        await storage.deleteDocumentsBySource("sharepoint");
+        await storage.updateSharepointSyncTime();
+      }
 
       res.json({
         synced,
         failed,
-        message: `Sync complete. ${synced} document${synced !== 1 ? 's' : ''} imported${failed > 0 ? `, ${failed} failed` : ''}.`,
+        message: `Sync complete. ${synced} document${synced !== 1 ? 's' : ''} imported across ${syncedSources} source${syncedSources !== 1 ? 's' : ''}${failed > 0 ? `, ${failed} document${failed !== 1 ? 's' : ''} failed` : ''}${failedSources > 0 ? `, ${failedSources} source${failedSources !== 1 ? 's' : ''} unavailable` : ''}.`,
       });
 
     } catch (error) {
@@ -630,7 +1017,46 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
     }
   }
 
-  seedDatabase();
+  async function seedKnowledgeSources() {
+    const existing = await storage.getKnowledgeSources();
+    if (existing.length === 0) {
+      for (const source of DEFAULT_KNOWLEDGE_SOURCES) {
+        await storage.createKnowledgeSource(source);
+      }
+
+      const sharepointConfig = await storage.getSharepointConfig();
+      const configuredLibrary = sharepointConfig?.libraryName?.trim();
+      const isExampleLibrary = DEFAULT_KNOWLEDGE_SOURCES.some(
+        (source) =>
+          source.libraryName
+          && normaliseSourceValue(source.libraryName) === normaliseSourceValue(configuredLibrary),
+      );
+      if (configuredLibrary && !isExampleLibrary) {
+        await storage.createKnowledgeSource({
+          name: configuredLibrary,
+          libraryName: configuredLibrary,
+          description: `Searches the ${configuredLibrary} SharePoint library.`,
+          instructions: "",
+          smeTeam: "",
+          contactMethod: "",
+          contactDetails: "",
+          escalationMessage: "",
+          enabled: true,
+          isPortalWide: false,
+        });
+      }
+      return;
+    }
+
+    // The aggregate scope is a permanent system option. Add it for an
+    // installation that already has custom named sources but predates it.
+    if (!existing.some((source) => source.isPortalWide)) {
+      await storage.createKnowledgeSource(DEFAULT_KNOWLEDGE_SOURCES[0]);
+    }
+  }
+
+  await seedDatabase();
+  await seedKnowledgeSources();
 
   return httpServer;
 }

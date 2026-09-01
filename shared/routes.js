@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { insertDocumentSchema, insertSharepointConfigSchema } from './schema.js';
+import {
+  insertDocumentSchema,
+  insertSharepointConfigSchema,
+  insertKnowledgeSourceSchema,
+  updateKnowledgeSourceSchema,
+} from './schema.js';
 
 export const errorSchemas = {
   validation: z.object({
@@ -56,9 +61,11 @@ export const api = {
         message: z.string(),
         username: z.string().optional(),
         sessionId: z.string().optional(),
+        sourceId: z.number().int().positive().optional().nullable(),
       }),
       responses: {
         200: z.any(),
+        400: errorSchemas.validation,
         500: errorSchemas.internal,
       },
     },
@@ -67,6 +74,55 @@ export const api = {
       path: '/api/chat',
       responses: {
         204: z.void(),
+      },
+    },
+  },
+  knowledgeSources: {
+    options: {
+      method: 'GET',
+      path: '/api/knowledge-sources/options',
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          name: z.string(),
+          description: z.string(),
+          isPortalWide: z.boolean(),
+        })),
+      },
+    },
+    list: {
+      method: 'GET',
+      path: '/api/knowledge-sources',
+      responses: {
+        200: z.array(z.any()),
+      },
+    },
+    create: {
+      method: 'POST',
+      path: '/api/knowledge-sources',
+      input: insertKnowledgeSourceSchema,
+      responses: {
+        201: z.any(),
+        400: errorSchemas.validation,
+      },
+    },
+    update: {
+      method: 'PATCH',
+      path: '/api/knowledge-sources/:id',
+      input: updateKnowledgeSourceSchema,
+      responses: {
+        200: z.any(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE',
+      path: '/api/knowledge-sources/:id',
+      responses: {
+        204: z.void(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
       },
     },
   },

@@ -71,6 +71,9 @@ A floating chat widget powered by Azure OpenAI GPT-4o that answers questions usi
 - `SHAREPOINT_CLIENT_ID` — App registration Client ID
 - `SHAREPOINT_CLIENT_SECRET` — App registration Client Secret
 
+### Administration access on IIS
+- `ADMIN_USERS` — Comma-, semicolon-, or newline-separated Windows usernames allowed to manage knowledge sources. Required in production; IIS Windows Authentication must promote `AUTH_USER` through iisnode.
+
 ## Running
 
 ```bash

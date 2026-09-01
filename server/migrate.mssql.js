@@ -63,6 +63,32 @@ const statements = [
      updated_at          DATETIME2 DEFAULT GETDATE()
    )`,
 
+  `IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='knowledge_sources' AND xtype='U')
+   CREATE TABLE knowledge_sources (
+      id                  INT IDENTITY(1,1) PRIMARY KEY,
+      name                NVARCHAR(255) NOT NULL,
+      library_name        NVARCHAR(255),
+      description         NVARCHAR(MAX) NOT NULL DEFAULT '',
+      instructions        NVARCHAR(MAX) NOT NULL DEFAULT '',
+      sme_team            NVARCHAR(255) NOT NULL DEFAULT '',
+      contact_method      NVARCHAR(255) NOT NULL DEFAULT '',
+      contact_details     NVARCHAR(MAX) NOT NULL DEFAULT '',
+      escalation_message  NVARCHAR(MAX) NOT NULL DEFAULT '',
+      enabled             BIT NOT NULL DEFAULT 1,
+      is_portal_wide      BIT NOT NULL DEFAULT 0,
+      created_at          DATETIME2 DEFAULT GETDATE(),
+      updated_at          DATETIME2 DEFAULT GETDATE()
+    )`,
+
+  `IF NOT EXISTS (
+      SELECT * FROM sys.indexes
+      WHERE name = 'knowledge_sources_one_portal_wide'
+        AND object_id = OBJECT_ID('knowledge_sources')
+    )
+    CREATE UNIQUE INDEX knowledge_sources_one_portal_wide
+      ON knowledge_sources(is_portal_wide)
+      WHERE is_portal_wide = 1`,
+
   // Add enable_chat_log to existing app_settings tables (idempotent)
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'enable_chat_log')
    ALTER TABLE app_settings ADD enable_chat_log BIT NOT NULL DEFAULT 0`,

@@ -10,7 +10,18 @@ import rehypeRaw from "rehype-raw";
 // rehypeRaw allows the AI to emit styled HTML (e.g. <span style="...">).
 // Content comes from the OpenAI API, not directly from end-users.
 
-export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents.", responseStyle = null }) {
+export default function Chat({
+  isWidget = false,
+  messages,
+  isPending,
+  isError,
+  onSend,
+  welcomeMessage = "Ask me anything about your SharePoint documents.",
+  responseStyle = null,
+  knowledgeSources = [],
+  selectedSourceId = "",
+  onSourceChange,
+}) {
 
   // Convert responseStyle object → a CSS style object applied to assistant message containers.
   // CSS inheritance means child elements with their own inline styles (e.g. the red bold prefix)
@@ -24,6 +35,9 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
   } : {};
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
+  const selectedSource = knowledgeSources.find(
+    (source) => String(source.id) === String(selectedSourceId),
+  );
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -50,6 +64,35 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
         <header className="h-14 border-b border-border bg-background flex items-center px-6 flex-shrink-0">
           <h1 className="text-base font-semibold text-foreground">ON-PNT® Assistant</h1>
         </header>
+      )}
+
+      {knowledgeSources.length > 0 && (
+        <div className="border-b border-border bg-muted/20 px-4 py-3 flex-shrink-0" data-testid="source-selection-card">
+          <div className="flex items-center justify-between gap-3">
+            <label htmlFor="knowledge-source" className="text-xs font-semibold text-foreground">
+              Knowledge source
+            </label>
+            <select
+              id="knowledge-source"
+              value={selectedSourceId}
+              onChange={(event) => onSourceChange?.(event.target.value)}
+              disabled={isPending}
+              className="h-8 max-w-[220px] rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              data-testid="select-knowledge-source"
+            >
+              {knowledgeSources.map((source) => (
+                <option key={source.id} value={String(source.id)}>
+                  {source.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-[11px] leading-relaxed text-muted-foreground mt-1.5">
+            {selectedSource?.isPortalWide
+              ? "Searches the full configured SharePoint site collection."
+              : selectedSource?.description || `Searches only the ${selectedSource?.name || "selected"} knowledge source.`}
+          </p>
+        </div>
       )}
 
       <ScrollArea className="flex-1 overflow-hidden">

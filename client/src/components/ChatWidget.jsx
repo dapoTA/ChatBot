@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
@@ -16,6 +16,7 @@ export function ChatWidget() {
   const [messages, setMessages] = useState([]);
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [selectedSourceId, setSelectedSourceId] = useState("");
 
   // Read SharePoint user from URL param injected by the embed script / SPFx customizer.
   // Lazy initializer runs once on mount — no effect needed.
@@ -26,8 +27,28 @@ export function ChatWidget() {
   const [sessionId, setSessionId] = useState("");
 
   const { data: settings } = useQuery({
-    queryKey: ["/api/settings"],
+    queryKey: ["/api/settings/public"],
   });
+
+  const { data: knowledgeSources = [] } = useQuery({
+    queryKey: ["/api/knowledge-sources/options"],
+  });
+
+  useEffect(() => {
+    if (knowledgeSources.length === 0) {
+      setSelectedSourceId("");
+      return;
+    }
+
+    const currentIsAvailable = knowledgeSources.some(
+      (source) => String(source.id) === String(selectedSourceId),
+    );
+    if (!currentIsAvailable) {
+      const defaultSource = knowledgeSources.find((source) => source.isPortalWide)
+        ?? knowledgeSources[0];
+      setSelectedSourceId(defaultSource ? String(defaultSource.id) : "");
+    }
+  }, [knowledgeSources, selectedSourceId]);
 
   const assistantName = settings?.assistantName || DEFAULTS.assistantName;
   const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
@@ -89,6 +110,7 @@ export function ChatWidget() {
         message,
         ...(spUser    ? { username:  spUser    } : {}),
         ...(sessionId ? { sessionId: sessionId } : {}),
+        ...(selectedSourceId ? { sourceId: Number(selectedSourceId) } : {}),
       });
       if (!res.ok) throw new Error("Failed");
       const assistantMsg = await res.json();
@@ -254,6 +276,9 @@ export function ChatWidget() {
                     onSend={handleSend}
                     welcomeMessage={welcomeMessage}
                     responseStyle={responseStyle}
+                    knowledgeSources={knowledgeSources}
+                    selectedSourceId={selectedSourceId}
+                    onSourceChange={setSelectedSourceId}
                   />
                 </div>
               </div>

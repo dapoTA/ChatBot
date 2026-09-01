@@ -1,5 +1,12 @@
 import { db } from "./db.js";
-import { documents, messages, sharepointConfigs, appSettings, chatLogs } from "../shared/schema.js";
+import {
+  documents,
+  messages,
+  sharepointConfigs,
+  appSettings,
+  knowledgeSources,
+  chatLogs,
+} from "../shared/schema.js";
 import { eq, desc, gte, lte, and } from "drizzle-orm";
 import { encrypt, decrypt } from "./crypto.js";
 
@@ -111,6 +118,31 @@ export class DatabaseStorage {
       const [created] = await db.insert(appSettings).values(settings).returning();
       return created;
     }
+  }
+
+  async getKnowledgeSources() {
+    return await db
+      .select()
+      .from(knowledgeSources)
+      .orderBy(desc(knowledgeSources.isPortalWide), knowledgeSources.name, knowledgeSources.id);
+  }
+
+  async createKnowledgeSource(source) {
+    const [created] = await db.insert(knowledgeSources).values(source).returning();
+    return created;
+  }
+
+  async updateKnowledgeSource(id, source) {
+    const [updated] = await db
+      .update(knowledgeSources)
+      .set({ ...source, updatedAt: new Date() })
+      .where(eq(knowledgeSources.id, id))
+      .returning();
+    return updated ?? null;
+  }
+
+  async deleteKnowledgeSource(id) {
+    await db.delete(knowledgeSources).where(eq(knowledgeSources.id, id));
   }
 
   async createChatLog(log) {

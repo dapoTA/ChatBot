@@ -21,6 +21,11 @@ import {
   AlertTriangle,
   Bot,
   Download,
+  Plus,
+  Pencil,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { extractStyledPhrases, extractGlobalResponseStyle } from "@/lib/styleParser";
 import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
@@ -70,6 +75,19 @@ const sharepointSchema = z.object({
   // surface a clear error at test/sync time if credentials are missing.
 });
 
+const EMPTY_SOURCE = {
+  name: "",
+  libraryName: "",
+  description: "",
+  instructions: "",
+  smeTeam: "",
+  contactMethod: "",
+  contactDetails: "",
+  escalationMessage: "",
+  enabled: true,
+  isPortalWide: false,
+};
+
 export default function Settings() {
   const { toast } = useToast();
   const [testResult, setTestResult] = useState(null);
@@ -86,6 +104,139 @@ export default function Settings() {
   const { data: config } = useQuery({
     queryKey: ["/api/sharepoint/config"],
   });
+
+  const { data: knowledgeSources = [] } = useQuery({
+    queryKey: ["/api/knowledge-sources"],
+  });
+
+  const [editingSourceId, setEditingSourceId] = useState(null);
+  const [sourceDraft, setSourceDraft] = useState(EMPTY_SOURCE);
+  const [sourceFormError, setSourceFormError] = useState("");
+
+  const openSourceEditor = (source) => {
+    setEditingSourceId(source.id);
+    setSourceDraft({
+      ...EMPTY_SOURCE,
+      ...source,
+      libraryName: source.libraryName ?? "",
+      description: source.description ?? "",
+      instructions: source.instructions ?? "",
+      smeTeam: source.smeTeam ?? "",
+      contactMethod: source.contactMethod ?? "",
+      contactDetails: source.contactDetails ?? "",
+      escalationMessage: source.escalationMessage ?? "",
+    });
+    setSourceFormError("");
+  };
+
+  const openNewSourceEditor = () => {
+    setEditingSourceId("new");
+    setSourceDraft({ ...EMPTY_SOURCE });
+    setSourceFormError("");
+  };
+
+  const closeSourceEditor = () => {
+    setEditingSourceId(null);
+    setSourceDraft({ ...EMPTY_SOURCE });
+    setSourceFormError("");
+  };
+
+  const updateSourceDraft = (field, value) => {
+    setSourceDraft((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveKnowledgeSource = useMutation({
+    mutationFn: async ({ id, data }) => {
+      const path = id === "new"
+        ? "/api/knowledge-sources"
+        : `/api/knowledge-sources/${id}`;
+      const response = await apiRequest(id === "new" ? "POST" : "PATCH", path, data);
+      return response.status === 204 ? null : response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/knowledge-sources"] });
+      toast({
+        title: editingSourceId === "new" ? "Source added" : "Source saved",
+        description: "Knowledge source settings have been updated.",
+      });
+      closeSourceEditor();
+    },
+    onError: (error) => {
+      setSourceFormError(error?.message || "Could not save this knowledge source.");
+    },
+  });
+
+  const deleteKnowledgeSource = useMutation({
+    mutationFn: (id) => apiRequest("DELETE", `/api/knowledge-sources/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/knowledge-sources"] });
+      toast({ title: "Source removed" });
+      if (editingSourceId !== null) closeSourceEditor();
+    },
+    onError: (error) => {
+      toast({
+        title: "Remove failed",
+        description: error?.message || "Could not remove this knowledge source.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const toggleKnowledgeSource = useMutation({
+    mutationFn: ({ id, enabled }) =>
+      apiRequest("PATCH", `/api/knowledge-sources/${id}`, { enabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/knowledge-sources"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Status update failed",
+        description: error?.message || "Could not update this knowledge source.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveKnowledgeSource = (event) => {
+    event.preventDefault();
+    const name = sourceDraft.name.trim();
+    const libraryName = sourceDraft.libraryName.trim();
+
+    if (!name) {
+      setSourceFormError("Source name is required.");
+      return;
+    }
+    if (!sourceDraft.isPortalWide && !libraryName) {
+      setSourceFormError("SharePoint library name is required for a named source.");
+      return;
+    }
+
+    saveKnowledgeSource.mutate({
+      id: editingSourceId,
+      data: {
+        name,
+        libraryName: sourceDraft.isPortalWide ? null : libraryName,
+        description: sourceDraft.description.trim(),
+        instructions: sourceDraft.instructions.trim(),
+        smeTeam: sourceDraft.smeTeam.trim(),
+        contactMethod: sourceDraft.contactMethod.trim(),
+        contactDetails: sourceDraft.contactDetails.trim(),
+        escalationMessage: sourceDraft.escalationMessage.trim(),
+        enabled: sourceDraft.isPortalWide ? true : Boolean(sourceDraft.enabled),
+        isPortalWide: Boolean(sourceDraft.isPortalWide),
+      },
+    });
+  };
+
+  const handleToggleKnowledgeSource = (source, enabled) => {
+    toggleKnowledgeSource.mutate({ id: source.id, enabled });
+  };
+
+  const handleDeleteKnowledgeSource = (source) => {
+    if (window.confirm(`Remove the "${source.name}" knowledge source?`)) {
+      deleteKnowledgeSource.mutate(source.id);
+    }
+  };
 
   // ─── Chat logging toggle ───────────────────────────────────────────────────
 
@@ -439,6 +590,409 @@ export default function Settings() {
             </Button>
           </div>
         </form>
+
+        {/* ── Knowledge Sources ───────────────────────────────────────────── */}
+        <section id="knowledge-sources" className="rounded-xl border border-border bg-card p-6 space-y-5" data-testid="knowledge-sources-section">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                Knowledge Sources
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Choose which SharePoint knowledge area the assistant should use. Global Custom Instructions still apply to every source.
+              </p>
+            </div>
+            <Button type="button" variant="outline" onClick={openNewSourceEditor} data-testid="button-add-source">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Source
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {knowledgeSources.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border px-4 py-5 text-sm text-muted-foreground" data-testid="knowledge-sources-empty">
+                No knowledge sources have been configured yet. Add a named SharePoint library to get started.
+              </div>
+            ) : (
+              knowledgeSources.map((source) => {
+                const isEditing = editingSourceId === source.id;
+                return (
+                  <div
+                    key={source.id}
+                    className={`rounded-lg border transition-colors ${isEditing ? "border-primary/60 bg-primary/5" : "border-border bg-muted/20"}`}
+                    data-testid={`knowledge-source-${source.id}`}
+                  >
+                    <div className="flex items-start gap-3 p-4">
+                      <button
+                        type="button"
+                        className="flex-1 min-w-0 text-left"
+                        onClick={() => openSourceEditor(source)}
+                        aria-expanded={isEditing}
+                        data-testid={`button-expand-source-${source.id}`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">{source.name}</span>
+                          <span className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                            source.enabled
+                              ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                              : "bg-muted text-muted-foreground"
+                          }`}>
+                            {source.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                          {source.isPortalWide && (
+                            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300">
+                              Portal-wide
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">
+                          {source.isPortalWide
+                            ? "Searches the full configured SharePoint site collection."
+                            : `Library: ${source.libraryName || "Not configured"}`}
+                        </p>
+                        {source.description && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{source.description}</p>
+                        )}
+                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!source.isPortalWide && (
+                          <Switch
+                            checked={Boolean(source.enabled)}
+                            onCheckedChange={(enabled) => handleToggleKnowledgeSource(source, enabled)}
+                            disabled={toggleKnowledgeSource.isPending}
+                            aria-label={`${source.enabled ? "Disable" : "Enable"} ${source.name}`}
+                            data-testid={`switch-source-${source.id}`}
+                          />
+                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => isEditing ? closeSourceEditor() : openSourceEditor(source)}
+                          aria-label={`Edit ${source.name}`}
+                          data-testid={`button-edit-source-${source.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openSourceEditor(source)}
+                          aria-label={`${isEditing ? "Collapse" : "Expand"} ${source.name}`}
+                          data-testid={`button-toggle-source-${source.id}`}
+                        >
+                          {isEditing ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </Button>
+                        {!source.isPortalWide && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteKnowledgeSource(source)}
+                            disabled={deleteKnowledgeSource.isPending}
+                            aria-label={`Remove ${source.name}`}
+                            data-testid={`button-delete-source-${source.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <form onSubmit={handleSaveKnowledgeSource} className="border-t border-border p-4 space-y-4" data-testid={`source-editor-${source.id}`}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-semibold text-foreground">Edit Source</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              Keep advanced response and escalation guidance with the source it serves.
+                            </p>
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" onClick={closeSourceEditor}>
+                            Close
+                          </Button>
+                        </div>
+
+                        {source.isPortalWide ? (
+                          <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 px-3 py-2 text-xs text-blue-800 dark:text-blue-200">
+                            <strong>All Portal Sources</strong> searches the full configured SharePoint site collection. Its guidance is separate from every individual library.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <Label htmlFor={`source-name-${source.id}`}>Source Name</Label>
+                              <Input
+                                id={`source-name-${source.id}`}
+                                value={sourceDraft.name}
+                                onChange={(event) => updateSourceDraft("name", event.target.value)}
+                                placeholder="HR"
+                                data-testid={`input-source-name-${source.id}`}
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor={`source-library-${source.id}`}>SharePoint Library</Label>
+                              <Input
+                                id={`source-library-${source.id}`}
+                                value={sourceDraft.libraryName}
+                                onChange={(event) => updateSourceDraft("libraryName", event.target.value)}
+                                placeholder="HR"
+                                data-testid={`input-source-library-${source.id}`}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {!source.isPortalWide && (
+                          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2">
+                            <div>
+                              <p className="text-sm font-medium text-foreground">Source enabled</p>
+                              <p className="text-xs text-muted-foreground">Disabled sources are hidden from the chat selector.</p>
+                            </div>
+                            <Switch
+                              checked={Boolean(sourceDraft.enabled)}
+                              onCheckedChange={(enabled) => updateSourceDraft("enabled", enabled)}
+                              data-testid={`switch-source-editor-${source.id}`}
+                            />
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`source-description-${source.id}`}>Description</Label>
+                          <Textarea
+                            id={`source-description-${source.id}`}
+                            value={sourceDraft.description}
+                            onChange={(event) => updateSourceDraft("description", event.target.value)}
+                            placeholder="Short plain-language explanation shown to administrators and users."
+                            rows={2}
+                            className="resize-y"
+                            data-testid={`input-source-description-${source.id}`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Helper text only; it is not interpreted as an AI instruction.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`source-instructions-${source.id}`}>
+                            {source.isPortalWide ? "Portal-wide Instructions" : "Instructions for This Source"}
+                          </Label>
+                          <Textarea
+                            id={`source-instructions-${source.id}`}
+                            value={sourceDraft.instructions}
+                            onChange={(event) => updateSourceDraft("instructions", event.target.value)}
+                            placeholder={source.isPortalWide
+                              ? "Add guidance for questions that search the full portal."
+                              : "Add guidance that applies only when this source is selected."}
+                            rows={5}
+                            className="resize-y font-mono text-xs"
+                            data-testid={`input-source-instructions-${source.id}`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Global Custom Instructions are added automatically. Only this source's guidance is added here.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <Label htmlFor={`source-sme-${source.id}`}>SME / Team</Label>
+                            <Input
+                              id={`source-sme-${source.id}`}
+                              value={sourceDraft.smeTeam}
+                              onChange={(event) => updateSourceDraft("smeTeam", event.target.value)}
+                              placeholder="Human Resources"
+                              data-testid={`input-source-sme-${source.id}`}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`source-contact-method-${source.id}`}>Contact Method</Label>
+                            <Input
+                              id={`source-contact-method-${source.id}`}
+                              value={sourceDraft.contactMethod}
+                              onChange={(event) => updateSourceDraft("contactMethod", event.target.value)}
+                              placeholder="Email, Teams, phone"
+                              data-testid={`input-source-contact-method-${source.id}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`source-contact-details-${source.id}`}>Contact Details</Label>
+                          <Input
+                            id={`source-contact-details-${source.id}`}
+                            value={sourceDraft.contactDetails}
+                            onChange={(event) => updateSourceDraft("contactDetails", event.target.value)}
+                            placeholder="Mailbox, extension, Teams channel, or approved route"
+                            data-testid={`input-source-contact-details-${source.id}`}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label htmlFor={`source-escalation-${source.id}`}>
+                            {source.isPortalWide ? "Portal-wide Escalation Message" : "Escalation Message"}
+                          </Label>
+                          <Textarea
+                            id={`source-escalation-${source.id}`}
+                            value={sourceDraft.escalationMessage}
+                            onChange={(event) => updateSourceDraft("escalationMessage", event.target.value)}
+                            placeholder="Tell the user what to do when this source cannot answer."
+                            rows={3}
+                            className="resize-y"
+                            data-testid={`input-source-escalation-${source.id}`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Used with the contact routing above when the selected source cannot answer.
+                          </p>
+                        </div>
+
+                        {sourceFormError && (
+                          <p className="text-xs text-destructive" role="alert" data-testid="source-form-error">
+                            {sourceFormError}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2">
+                          <Button type="submit" disabled={saveKnowledgeSource.isPending} data-testid={`button-save-source-${source.id}`}>
+                            <Save className="w-4 h-4 mr-2" />
+                            {saveKnowledgeSource.isPending ? "Saving…" : "Save Source"}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={closeSourceEditor}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {editingSourceId === "new" && (
+            <form onSubmit={handleSaveKnowledgeSource} className="rounded-lg border border-primary/60 bg-primary/5 p-4 space-y-4" data-testid="source-editor-new">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">Add Knowledge Source</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Add a named source and connect it to the matching SharePoint library.
+                  </p>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={closeSourceEditor}>Close</Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-name">Source Name</Label>
+                  <Input
+                    id="new-source-name"
+                    value={sourceDraft.name}
+                    onChange={(event) => updateSourceDraft("name", event.target.value)}
+                    placeholder="Finance"
+                    data-testid="input-new-source-name"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-library">SharePoint Library</Label>
+                  <Input
+                    id="new-source-library"
+                    value={sourceDraft.libraryName}
+                    onChange={(event) => updateSourceDraft("libraryName", event.target.value)}
+                    placeholder="Finance"
+                    data-testid="input-new-source-library"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="new-source-description">Description</Label>
+                <Textarea
+                  id="new-source-description"
+                  value={sourceDraft.description}
+                  onChange={(event) => updateSourceDraft("description", event.target.value)}
+                  placeholder="Short plain-language explanation shown to administrators and users."
+                  rows={2}
+                  className="resize-y"
+                  data-testid="input-new-source-description"
+                />
+                <p className="text-xs text-muted-foreground">Helper text only; it is not interpreted as an AI instruction.</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="new-source-instructions">Instructions for This Source</Label>
+                <Textarea
+                  id="new-source-instructions"
+                  value={sourceDraft.instructions}
+                  onChange={(event) => updateSourceDraft("instructions", event.target.value)}
+                  placeholder="Add guidance that applies only when this source is selected."
+                  rows={5}
+                  className="resize-y font-mono text-xs"
+                  data-testid="input-new-source-instructions"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-sme">SME / Team</Label>
+                  <Input
+                    id="new-source-sme"
+                    value={sourceDraft.smeTeam}
+                    onChange={(event) => updateSourceDraft("smeTeam", event.target.value)}
+                    placeholder="Finance team"
+                    data-testid="input-new-source-sme"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-contact-method">Contact Method</Label>
+                  <Input
+                    id="new-source-contact-method"
+                    value={sourceDraft.contactMethod}
+                    onChange={(event) => updateSourceDraft("contactMethod", event.target.value)}
+                    placeholder="Email, Teams, phone"
+                    data-testid="input-new-source-contact-method"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="new-source-contact-details">Contact Details</Label>
+                <Input
+                  id="new-source-contact-details"
+                  value={sourceDraft.contactDetails}
+                  onChange={(event) => updateSourceDraft("contactDetails", event.target.value)}
+                  placeholder="Mailbox, extension, Teams channel, or approved route"
+                  data-testid="input-new-source-contact-details"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="new-source-escalation">Escalation Message</Label>
+                <Textarea
+                  id="new-source-escalation"
+                  value={sourceDraft.escalationMessage}
+                  onChange={(event) => updateSourceDraft("escalationMessage", event.target.value)}
+                  placeholder="Tell the user what to do when this source cannot answer."
+                  rows={3}
+                  className="resize-y"
+                  data-testid="input-new-source-escalation"
+                />
+              </div>
+
+              {sourceFormError && (
+                <p className="text-xs text-destructive" role="alert" data-testid="source-form-error-new">
+                  {sourceFormError}
+                </p>
+              )}
+
+              <div className="flex items-center gap-2">
+                <Button type="submit" disabled={saveKnowledgeSource.isPending} data-testid="button-save-new-source">
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveKnowledgeSource.isPending ? "Saving…" : "Add Source"}
+                </Button>
+                <Button type="button" variant="outline" onClick={closeSourceEditor}>Cancel</Button>
+              </div>
+            </form>
+          )}
+        </section>
 
         {/* ── AI Model Parameters ─────────────────────────────────────────── */}
         <form onSubmit={aiParamsForm.handleSubmit((d) => saveAiParams.mutate(d))}>
@@ -899,8 +1453,8 @@ export default function Settings() {
             <div>
               <h2 className="text-sm font-semibold text-foreground">Sync Document Library</h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Fetches all files from your configured library and loads them into the chatbot.
-                Supports Word (.docx), PDF, and plain text files. Previous synced documents will be replaced.
+                Fetches files from every enabled named knowledge source and loads them into the chatbot.
+                Supports Word (.docx), PDF, and plain text files. Each source replaces only its own previously synced documents.
               </p>
               {config?.lastSyncedAt && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">

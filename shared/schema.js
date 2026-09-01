@@ -1,4 +1,5 @@
-import { pgTable, text, serial, boolean, timestamp, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, real, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -55,6 +56,26 @@ export const appSettings = pgTable("app_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const knowledgeSources = pgTable("knowledge_sources", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  libraryName: text("library_name"),
+  description: text("description").notNull().default(""),
+  instructions: text("instructions").notNull().default(""),
+  smeTeam: text("sme_team").notNull().default(""),
+  contactMethod: text("contact_method").notNull().default(""),
+  contactDetails: text("contact_details").notNull().default(""),
+  escalationMessage: text("escalation_message").notNull().default(""),
+  enabled: boolean("enabled").notNull().default(true),
+  isPortalWide: boolean("is_portal_wide").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  onePortalWideSource: uniqueIndex("knowledge_sources_one_portal_wide")
+    .on(table.isPortalWide)
+    .where(sql`${table.isPortalWide} = true`),
+}));
+
 export const chatLogs = pgTable("chat_logs", {
   id: serial("id").primaryKey(),
   sessionId: text("session_id").notNull(),
@@ -69,6 +90,21 @@ export const chatLogs = pgTable("chat_logs", {
 export const insertAppSettingsSchema = createInsertSchema(appSettings)
   .omit({ id: true, updatedAt: true })
   .extend({ enableChatLog: z.boolean().optional() });
+export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    name: z.string().trim().min(1, "Source name is required").max(255),
+    libraryName: z.string().trim().max(255).optional().nullable(),
+    description: z.string().optional().default(""),
+    instructions: z.string().optional().default(""),
+    smeTeam: z.string().optional().default(""),
+    contactMethod: z.string().optional().default(""),
+    contactDetails: z.string().optional().default(""),
+    escalationMessage: z.string().optional().default(""),
+    enabled: z.boolean().optional().default(true),
+    isPortalWide: z.boolean().optional().default(false),
+  });
+export const updateKnowledgeSourceSchema = insertKnowledgeSourceSchema.partial();
 export const insertChatLogSchema = createInsertSchema(chatLogs).omit({ id: true, createdAt: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });

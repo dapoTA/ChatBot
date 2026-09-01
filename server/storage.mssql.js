@@ -65,6 +65,25 @@ function mapAppSettings(row) {
   };
 }
 
+function mapKnowledgeSource(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    libraryName: row.library_name,
+    description: row.description ?? "",
+    instructions: row.instructions ?? "",
+    smeTeam: row.sme_team ?? "",
+    contactMethod: row.contact_method ?? "",
+    contactDetails: row.contact_details ?? "",
+    escalationMessage: row.escalation_message ?? "",
+    enabled: row.enabled === true || row.enabled === 1,
+    isPortalWide: row.is_portal_wide === true || row.is_portal_wide === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function mapChatLog(row) {
   if (!row) return null;
   return {
@@ -299,6 +318,77 @@ export class DatabaseStorage {
     }
 
     return this.getAppSettings();
+  }
+
+  async getKnowledgeSources() {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT id, name, library_name, description, instructions, sme_team,
+             contact_method, contact_details, escalation_message, enabled,
+             is_portal_wide, created_at, updated_at
+      FROM knowledge_sources
+      ORDER BY is_portal_wide DESC, name ASC, id ASC
+    `);
+    return result.recordset.map(mapKnowledgeSource);
+  }
+
+  async createKnowledgeSource(source) {
+    const pool = await getPool();
+    const result = await pool.request()
+      .input("name", sql.NVarChar(255), source.name)
+      .input("library_name", sql.NVarChar(255), source.libraryName ?? null)
+      .input("description", sql.NVarChar(sql.MAX), source.description ?? "")
+      .input("instructions", sql.NVarChar(sql.MAX), source.instructions ?? "")
+      .input("sme_team", sql.NVarChar(255), source.smeTeam ?? "")
+      .input("contact_method", sql.NVarChar(255), source.contactMethod ?? "")
+      .input("contact_details", sql.NVarChar(sql.MAX), source.contactDetails ?? "")
+      .input("escalation_message", sql.NVarChar(sql.MAX), source.escalationMessage ?? "")
+      .input("enabled", sql.Bit, source.enabled === false ? 0 : 1)
+      .input("is_portal_wide", sql.Bit, source.isPortalWide ? 1 : 0)
+      .query(`
+        INSERT INTO knowledge_sources
+          (name, library_name, description, instructions, sme_team,
+           contact_method, contact_details, escalation_message, enabled, is_portal_wide)
+        OUTPUT INSERTED.*
+        VALUES
+          (@name, @library_name, @description, @instructions, @sme_team,
+           @contact_method, @contact_details, @escalation_message, @enabled, @is_portal_wide)
+      `);
+    return mapKnowledgeSource(result.recordset[0]);
+  }
+
+  async updateKnowledgeSource(id, source) {
+    const pool = await getPool();
+    const result = await pool.request()
+      .input("id", sql.Int, id)
+      .input("name", sql.NVarChar(255), source.name)
+      .input("library_name", sql.NVarChar(255), source.libraryName ?? null)
+      .input("description", sql.NVarChar(sql.MAX), source.description ?? "")
+      .input("instructions", sql.NVarChar(sql.MAX), source.instructions ?? "")
+      .input("sme_team", sql.NVarChar(255), source.smeTeam ?? "")
+      .input("contact_method", sql.NVarChar(255), source.contactMethod ?? "")
+      .input("contact_details", sql.NVarChar(sql.MAX), source.contactDetails ?? "")
+      .input("escalation_message", sql.NVarChar(sql.MAX), source.escalationMessage ?? "")
+      .input("enabled", sql.Bit, source.enabled === false ? 0 : 1)
+      .input("is_portal_wide", sql.Bit, source.isPortalWide ? 1 : 0)
+      .query(`
+        UPDATE knowledge_sources SET
+          name = @name, library_name = @library_name, description = @description,
+          instructions = @instructions, sme_team = @sme_team,
+          contact_method = @contact_method, contact_details = @contact_details,
+          escalation_message = @escalation_message, enabled = @enabled,
+          is_portal_wide = @is_portal_wide, updated_at = GETDATE()
+        OUTPUT INSERTED.*
+        WHERE id = @id
+      `);
+    return mapKnowledgeSource(result.recordset[0] ?? null);
+  }
+
+  async deleteKnowledgeSource(id) {
+    const pool = await getPool();
+    await pool.request()
+      .input("id", sql.Int, id)
+      .query("DELETE FROM knowledge_sources WHERE id = @id");
   }
 
   async createChatLog(log) {
