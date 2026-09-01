@@ -22,6 +22,52 @@ const THEME_PRESETS = {
   amber: { color: "#b45309", hsl: "32 95% 37%" },
 };
 
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+function isValidHexColor(value) {
+  return HEX_COLOR_PATTERN.test(String(value ?? "").trim());
+}
+
+function hexToHsl(hex) {
+  const value = String(hex).replace("#", "");
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16) / 255);
+  const max = Math.max(...channels);
+  const min = Math.min(...channels);
+  const lightness = (max + min) / 2;
+  if (max === min) return `0 0% ${Math.round(lightness * 100)}%`;
+
+  const delta = max - min;
+  const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+  let hue;
+  if (max === channels[0]) hue = (channels[1] - channels[2]) / delta + (channels[1] < channels[2] ? 6 : 0);
+  else if (max === channels[1]) hue = (channels[2] - channels[0]) / delta + 2;
+  else hue = (channels[0] - channels[1]) / delta + 4;
+  return `${Math.round(hue * 60)} ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%`;
+}
+
+function getContrastColor(hex) {
+  const value = String(hex).replace("#", "");
+  const channels = [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset, offset + 2), 16) / 255);
+  const luminance = channels
+    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const blackContrast = (luminance + 0.05) / 0.05;
+  return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
+
+function resolveTheme(themeName, customThemeColor) {
+  const preset = THEME_PRESETS[themeName] || THEME_PRESETS.teal;
+  const color = themeName === "custom" && isValidHexColor(customThemeColor)
+    ? customThemeColor.trim()
+    : preset.color;
+  return {
+    color,
+    hsl: themeName === "custom" && isValidHexColor(customThemeColor) ? hexToHsl(color) : preset.hsl,
+    foreground: getContrastColor(color),
+  };
+}
+
 const ICONS = {
   "message-circle": MessageCircle,
   sparkles: Sparkles,
@@ -73,10 +119,11 @@ export function ChatWidget() {
   const responseStyle = settings?.responseStyle || null;
   const assistantIcon = settings?.assistantIcon || DEFAULTS.assistantIcon;
   const themeName = settings?.theme || DEFAULTS.theme;
+  const customThemeColor = settings?.customThemeColor || "";
   const launcherLabel = settings?.launcherLabel || DEFAULTS.launcherLabel;
   const launcherPosition = settings?.launcherPosition || DEFAULTS.launcherPosition;
   const launcherStyle = settings?.launcherStyle || DEFAULTS.launcherStyle;
-  const theme = THEME_PRESETS[themeName] || THEME_PRESETS.teal;
+  const theme = resolveTheme(themeName, customThemeColor);
   const AssistantIcon = ICONS[assistantIcon] || MessageCircle;
   const launcherSide = launcherPosition === "bottom-left" ? { left: 24 } : { right: 24 };
   const dialogSide = launcherPosition === "bottom-left" ? { left: 20 } : { right: 20 };
@@ -165,15 +212,16 @@ export function ChatWidget() {
               bottom: 24,
               zIndex: 9999,
               backgroundColor: theme.color,
+               color: theme.foreground,
               ...launcherSide,
             }}
-            className={`flex items-center justify-center gap-2 text-white shadow-lg transition-shadow hover:shadow-xl ${
+            className={`flex items-center justify-center gap-2 shadow-lg transition-shadow hover:shadow-xl ${
               launcherStyle === "pill" ? "min-h-12 rounded-full px-5" : "h-14 w-14 rounded-full"
             }`}
             data-testid="button-open-chat"
             aria-label="Open chat"
           >
-            <AssistantIcon className="w-6 h-6" />
+            <AssistantIcon className="w-6 h-6" style={{ color: theme.foreground }} />
             {launcherStyle === "pill" && <span className="text-sm font-semibold">{launcherLabel}</span>}
           </motion.button>
         )}
@@ -196,7 +244,7 @@ export function ChatWidget() {
               width: 420,
               maxWidth: "calc(100vw - 40px)",
               "--primary": theme.hsl,
-              "--primary-foreground": "0 0% 100%",
+               "--primary-foreground": hexToHsl(theme.foreground),
               ...dialogSide,
             }}
             data-testid="dialog-chat"
@@ -230,7 +278,7 @@ export function ChatWidget() {
                     }}
                   >
                     <AssistantIcon
-                      style={{ width: 14, height: 14, color: "#ffffff" }}
+                       style={{ width: 14, height: 14, color: theme.foreground }}
                     />
                   </div>
                   <span
@@ -288,7 +336,7 @@ export function ChatWidget() {
                       }}
                     >
                       <AssistantIcon
-                        style={{ width: 14, height: 14, color: "#ffffff" }}
+                       style={{ width: 14, height: 14, color: theme.foreground }}
                       />
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}>

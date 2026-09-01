@@ -55,6 +55,7 @@ export const appSettings = pgTable("app_settings", {
   enableChatLog: boolean("enable_chat_log").notNull().default(false),
   assistantIcon: text("assistant_icon").notNull().default("message-circle"),
   theme: text("theme").notNull().default("teal"),
+  customThemeColor: text("custom_theme_color"),
   launcherLabel: text("launcher_label").notNull().default("Ask inSite"),
   launcherPosition: text("launcher_position").notNull().default("bottom-right"),
   launcherStyle: text("launcher_style").notNull().default("bubble"),
@@ -97,7 +98,11 @@ export const insertAppSettingsSchema = createInsertSchema(appSettings)
   .extend({
     enableChatLog: z.boolean().optional(),
     assistantIcon: z.enum(["message-circle", "sparkles", "shield-check"]).optional(),
-    theme: z.enum(["teal", "ocean", "slate", "amber"]).optional(),
+    theme: z.enum(["teal", "ocean", "slate", "amber", "custom"]).optional(),
+    customThemeColor: z.preprocess(
+      (value) => typeof value === "string" && value.trim() === "" ? null : value,
+      z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Use a 6-digit hexadecimal color such as #188B6A.").nullable().optional(),
+    ),
     launcherLabel: z.string().trim().max(40).optional(),
     launcherPosition: z.enum(["bottom-right", "bottom-left"]).optional(),
     launcherStyle: z.enum(["bubble", "pill"]).optional(),

@@ -60,6 +60,7 @@ const statements = [
      frequency_penalty   FLOAT NOT NULL DEFAULT 0,
      presence_penalty    FLOAT NOT NULL DEFAULT 0,
      enable_chat_log     BIT NOT NULL DEFAULT 0,
+      custom_theme_color  NVARCHAR(7),
      updated_at          DATETIME2 DEFAULT GETDATE()
    )`,
 
@@ -98,6 +99,9 @@ const statements = [
 
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'theme')
    ALTER TABLE app_settings ADD theme NVARCHAR(50) NOT NULL CONSTRAINT df_app_settings_theme DEFAULT 'teal'`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'custom_theme_color')
+   ALTER TABLE app_settings ADD custom_theme_color NVARCHAR(7) NULL`,
 
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'launcher_label')
    ALTER TABLE app_settings ADD launcher_label NVARCHAR(40) NOT NULL CONSTRAINT df_app_settings_launcher_label DEFAULT 'Ask inSite'`,

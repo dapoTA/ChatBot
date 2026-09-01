@@ -768,6 +768,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
         responseStyle: extractGlobalResponseStyle(s?.customInstructions ?? ""),
         assistantIcon: s?.assistantIcon ?? "message-circle",
         theme: s?.theme ?? "teal",
+        customThemeColor: s?.customThemeColor ?? null,
         launcherLabel: s?.launcherLabel ?? "Ask inSite",
         launcherPosition: s?.launcherPosition ?? "bottom-right",
         launcherStyle: s?.launcherStyle ?? "bubble",
@@ -795,6 +796,7 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       enableChatLog: settings?.enableChatLog ?? false,
       assistantIcon: settings?.assistantIcon ?? "message-circle",
       theme: settings?.theme ?? "teal",
+      customThemeColor: settings?.customThemeColor ?? null,
       launcherLabel: settings?.launcherLabel ?? "Ask inSite",
       launcherPosition: settings?.launcherPosition ?? "bottom-right",
       launcherStyle: settings?.launcherStyle ?? "bubble",
@@ -835,6 +837,9 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
   app.post("/api/settings", requireKnowledgeSourceAdmin, async (req, res) => {
     try {
       const input = insertAppSettingsSchema.parse(req.body);
+      if (input.theme === "custom" && !/^#[0-9a-fA-F]{6}$/.test(input.customThemeColor ?? "")) {
+        return res.status(400).json({ message: "Choose a valid 6-digit hexadecimal color for the custom theme." });
+      }
       const saved = await storage.upsertAppSettings(input);
       res.json(saved);
     } catch (err) {

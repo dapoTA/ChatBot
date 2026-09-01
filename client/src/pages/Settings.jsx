@@ -48,6 +48,14 @@ const appearanceSchema = insertAppSettingsSchema.extend({
   welcomeMessage: z.string().min(1, "Welcome message is required"),
   notFoundMessage: z.string().min(1, "Not-found message is required"),
   customInstructions: z.string().optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.theme === "custom" && !/^#[0-9a-fA-F]{6}$/.test(data.customThemeColor ?? "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["customThemeColor"],
+      message: "Choose a valid 6-digit hexadecimal color for the custom theme.",
+    });
+  }
 });
 
 // ─── AI Parameters form ───────────────────────────────────────────────────────
@@ -111,6 +119,51 @@ const THEME_OPTIONS = {
   slate: { label: "Executive Slate", primary: "#475569", surface: "#f1f5f9", text: "#1e293b" },
   amber: { label: "Warm Amber", primary: "#b45309", surface: "#fffbeb", text: "#78350f" },
 };
+
+const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+
+function isValidHexColor(value) {
+  return HEX_COLOR_PATTERN.test(String(value ?? "").trim());
+}
+
+function hexToRgb(hex) {
+  const value = String(hex).replace("#", "");
+  return {
+    red: Number.parseInt(value.slice(0, 2), 16),
+    green: Number.parseInt(value.slice(2, 4), 16),
+    blue: Number.parseInt(value.slice(4, 6), 16),
+  };
+}
+
+function hexToHsl(hex) {
+  const { red, green, blue } = hexToRgb(hex);
+  const values = [red, green, blue].map((channel) => channel / 255);
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const lightness = (max + min) / 2;
+
+  if (max === min) return `0 0% ${Math.round(lightness * 100)}%`;
+
+  const delta = max - min;
+  const saturation = lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+  let hue;
+  if (max === values[0]) hue = (values[1] - values[2]) / delta + (values[1] < values[2] ? 6 : 0);
+  else if (max === values[1]) hue = (values[2] - values[0]) / delta + 2;
+  else hue = (values[0] - values[1]) / delta + 4;
+
+  return `${Math.round(hue * 60)} ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%`;
+}
+
+function getContrastColor(hex) {
+  const { red, green, blue } = hexToRgb(hex);
+  const luminance = [red, green, blue]
+    .map((channel) => channel / 255)
+    .map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  const blackContrast = (luminance + 0.05) / 0.05;
+  return whiteContrast >= blackContrast ? "#ffffff" : "#000000";
+}
 
 export default function Settings() {
   const { toast } = useToast();
@@ -314,6 +367,7 @@ export default function Settings() {
       customInstructions: "",
       assistantIcon: "message-circle",
       theme: "teal",
+      customThemeColor: null,
       launcherLabel: "Ask inSite",
       launcherPosition: "bottom-right",
       launcherStyle: "bubble",
@@ -333,6 +387,7 @@ export default function Settings() {
         customInstructions: appSettingsData.customInstructions ?? "",
         assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
         theme: appSettingsData.theme ?? "teal",
+        customThemeColor: appSettingsData.customThemeColor ?? null,
         launcherLabel: appSettingsData.launcherLabel ?? "Ask inSite",
         launcherPosition: appSettingsData.launcherPosition ?? "bottom-right",
         launcherStyle: appSettingsData.launcherStyle ?? "bubble",
@@ -341,10 +396,26 @@ export default function Settings() {
   }, [appSettingsData]);
 
   const saveAppearance = useMutation({
-    mutationFn: (data) => apiRequest("POST", "/api/settings", data),
-    onSuccess: () => {
+    mutationFn: async (data) => {
+      const response = await apiRequest("POST", "/api/settings", data);
+      return response.json();
+    },
+    onSuccess: (saved) => {
+      appearanceForm.reset({
+        assistantName: saved.assistantName,
+        welcomeMessage: saved.welcomeMessage,
+        notFoundMessage: saved.notFoundMessage,
+        customInstructions: saved.customInstructions ?? "",
+        assistantIcon: saved.assistantIcon ?? "message-circle",
+        theme: saved.theme ?? "teal",
+        customThemeColor: saved.customThemeColor ?? null,
+        launcherLabel: saved.launcherLabel ?? "Ask inSite",
+        launcherPosition: saved.launcherPosition ?? "bottom-right",
+        launcherStyle: saved.launcherStyle ?? "bubble",
+      });
+      queryClient.setQueryData(["/api/settings"], (current) => ({ ...current, ...saved }));
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Appearance saved", description: "Widget name and welcome message updated." });
+      toast({ title: "Appearance saved", description: "Widget branding and launcher settings updated." });
     },
     onError: () => {
       toast({ title: "Save failed", description: "Could not save appearance settings.", variant: "destructive" });
@@ -470,11 +541,27 @@ export default function Settings() {
   const previewPhrases = useMemo(() => extractStyledPhrases(instructionsValue), [instructionsValue]);
   const previewBodyStyle = useMemo(() => extractGlobalResponseStyle(instructionsValue), [instructionsValue]);
   const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
-  const selectedTheme = THEME_OPTIONS[appearanceForm.watch("theme")] ?? THEME_OPTIONS.teal;
+  const selectedThemeName = appearanceForm.watch("theme");
+  const customThemeColor = appearanceForm.watch("customThemeColor") ?? "";
+  const selectedThemeBase = THEME_OPTIONS[selectedThemeName] ?? THEME_OPTIONS.teal;
+  const selectedThemeColor = selectedThemeName === "custom" && isValidHexColor(customThemeColor)
+    ? customThemeColor.trim()
+    : selectedThemeBase.primary;
+  const selectedTheme = {
+    ...selectedThemeBase,
+    primary: selectedThemeColor,
+    foreground: getContrastColor(selectedThemeColor),
+  };
   const selectedIcon = ASSISTANT_ICON_OPTIONS.find(
     (option) => option.value === appearanceForm.watch("assistantIcon"),
   ) ?? ASSISTANT_ICON_OPTIONS[0];
   const PreviewIcon = selectedIcon.Icon;
+  const updateCustomThemeColor = (value) => {
+    appearanceForm.setValue("customThemeColor", value, { shouldDirty: true, shouldValidate: true });
+    if (appearanceForm.getValues("theme") !== "custom") {
+      appearanceForm.setValue("theme", "custom", { shouldDirty: true });
+    }
+  };
 
   const handleSaveActiveTab = () => {
     if (activeTab === "general") {
@@ -503,6 +590,7 @@ export default function Settings() {
         customInstructions: appSettingsData.customInstructions ?? "",
         assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
         theme: appSettingsData.theme ?? "teal",
+        customThemeColor: appSettingsData.customThemeColor ?? null,
         launcherLabel: appSettingsData.launcherLabel ?? "Ask inSite",
         launcherPosition: appSettingsData.launcherPosition ?? "bottom-right",
         launcherStyle: appSettingsData.launcherStyle ?? "bubble",
@@ -674,8 +762,7 @@ export default function Settings() {
               <h2 id="presentation-heading" className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Make the assistant recognisable</h2>
               <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">These values appear in the chat launcher, header, and response footer across the inSite portal.</p>
             </div>
-            <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
-              <div className="space-y-6">
+            <div className="space-y-6">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Organisation label</Label>
@@ -701,64 +788,86 @@ export default function Settings() {
                     <div className="flex h-11 items-center rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#596d82]">Answers are Technical Assurance specific</div>
                   </div>
                 </div>
-              </div>
-              <div className="rounded-xl border border-[#d9e3e8] bg-[#f6faf8] p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-[#5c7b70]">Assistant icon</span>
-                  <span className="text-[15px] text-[#8aa399]">?</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {ASSISTANT_ICON_OPTIONS.map(({ value, label, Icon }) => {
-                    const isSelected = appearanceForm.watch("assistantIcon") === value;
-                    return (
-                      <button key={value} type="button" onClick={() => appearanceForm.setValue("assistantIcon", value, { shouldDirty: true })} className={`flex h-12 items-center justify-center rounded-lg border transition ${isSelected ? "border-[#1e765c] bg-white text-[#1e765c] ring-2 ring-[#1e765c]/15" : "border-[#d6e2dc] bg-white/60 text-[#81978e] hover:border-[#9abaae]"}`} aria-label={`Assistant icon: ${label}`} aria-pressed={isSelected} data-testid={`button-assistant-icon-${value}`}>
-                        <Icon className="h-5 w-5" />
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="mt-3 text-[11px] leading-5 text-[#718198]">This icon is used consistently in the expanded header, minimized long bar, and closed floating launcher.</p>
-                <div className="mt-6 rounded-lg bg-[#10263f] p-4 text-white">
-                  <div className="flex items-center gap-2"><PreviewIcon className="h-4 w-4 text-[#8bd541]" /><span className="text-[10px] font-bold tracking-[0.14em] text-[#afd8c5]">TECHNICAL ASSURANCE</span></div>
-                  <div className="mt-2 text-[14px] font-semibold">{appearanceForm.watch("assistantName") || "inSite Assistant"}</div>
-                  <p className="mt-1 text-[11px] leading-4 text-[#c3d0dc]">Find answers from your trusted portal documents, without leaving inSite.</p>
-                  <div className="mt-3 border-t border-white/15 pt-2 text-[10px] text-[#a9bac8]">Powered by inSite knowledge</div>
-                </div>
-              </div>
             </div>
           </section>
 
-          <section className="border-t border-[#e3e9ed] pt-9" data-testid="theme-launcher-section">
+          <section id="theme-launcher" className="border-t border-[#e3e9ed] pt-9" data-testid="theme-launcher-section">
             <div className="mb-6">
               <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Theme &amp; launcher</p>
               <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Keep every assistant state on-brand</h2>
               <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">Choose the visual theme and launcher icon once. The selection is used in the expanded header, minimized long bar, and closed floating bubble.</p>
             </div>
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+            <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
               <div className="rounded-xl border border-[#dbe3e9] p-5">
-                <div className="text-[13px] font-semibold text-[#263c54]">Assistant theme</div>
-                <p className="mt-1 text-[11px] leading-5 text-[#8290a0]">Theme colors are applied to the assistant header, actions, focus states, and launcher accents.</p>
-                <div className="mt-4 grid gap-3">
-                  {Object.entries(THEME_OPTIONS).map(([value, theme]) => {
-                    const isSelected = appearanceForm.watch("theme") === value;
+                <div className="text-[13px] font-semibold text-[#263c54]">Assistant icon</div>
+                <p className="mt-1 text-[11px] leading-5 text-[#8290a0]">The selected mark appears in the header, minimized bar, and floating launcher.</p>
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  {ASSISTANT_ICON_OPTIONS.map(({ value, label, Icon }) => {
+                    const isSelected = appearanceForm.watch("assistantIcon") === value;
                     return (
-                      <button key={value} type="button" onClick={() => appearanceForm.setValue("theme", value, { shouldDirty: true })} className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${isSelected ? "border-[#1e765c] bg-[#f4faf7] ring-2 ring-[#1e765c]/10" : "border-[#dbe3e9] bg-[#fbfcfd] hover:border-[#a9c2b6]"}`} aria-pressed={isSelected} data-testid={`button-theme-${value}`}>
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: value === "teal" ? "#10263f" : theme.primary }}><span className="h-3.5 w-3.5 rounded-md" style={{ backgroundColor: theme.primary }} /></span>
-                        <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-[#344a60]">{theme.label}</span><span className="mt-0.5 block text-[10px] text-[#8290a0]">{value === "teal" ? "Current portal direction" : "Assistant accent theme"}</span></span>
-                        {isSelected && <span className="text-[#1e765c]">✓</span>}
+                      <button key={value} type="button" onClick={() => appearanceForm.setValue("assistantIcon", value, { shouldDirty: true })} className={`flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] font-medium transition ${isSelected ? "border-[#1e765c] bg-[#edf8f4] text-[#126b52] ring-1 ring-[#1e765c]/20" : "border-[#dbe3e9] bg-[#fbfcfd] text-[#718198] hover:border-[#a9c2b6]"}`} aria-label={`Assistant icon: ${label}`} aria-pressed={isSelected} data-testid={`button-assistant-icon-${value}`}>
+                        <Icon className="h-5 w-5" />
+                        {label}
                       </button>
                     );
                   })}
                 </div>
-              </div>
-              <div className="rounded-xl border border-[#dbe3e9] bg-[#f8fafb] p-5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.13em] text-[#617589]">Launcher preview</div>
-                <div className="mt-5 flex items-center gap-3 rounded-[15px] border border-[#e2e6eb] bg-white px-3 py-3 shadow-sm">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]" style={{ backgroundColor: selectedTheme.primary }}><PreviewIcon className="h-[17px] w-[17px] text-white" /></span>
-                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#1e2b3b]">{appearanceForm.watch("assistantName") || "inSite Assistant"}</span>
-                  <span className="text-[11px] text-[#52667b]">↗</span><span className="text-[14px] text-[#263443]">×</span>
+                <div className="mt-7 border-t border-[#e3e9ed] pt-5">
+                  <div className="text-[13px] font-semibold text-[#263c54]">Accent theme</div>
+                  <p className="mt-1 text-[11px] leading-5 text-[#8290a0]">Theme colors are applied to the assistant header, actions, focus states, and launcher accents.</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    {Object.entries(THEME_OPTIONS).map(([value, theme]) => {
+                      const isSelected = appearanceForm.watch("theme") === value;
+                      return (
+                        <button key={value} type="button" onClick={() => appearanceForm.setValue("theme", value, { shouldDirty: true })} className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${isSelected ? "border-[#1e765c] bg-[#f4faf7] ring-2 ring-[#1e765c]/10" : "border-[#dbe3e9] bg-[#fbfcfd] hover:border-[#a9c2b6]"}`} aria-pressed={isSelected} data-testid={`button-theme-${value}`}>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: value === "teal" ? "#10263f" : theme.primary }}><span className="h-3.5 w-3.5 rounded-md" style={{ backgroundColor: theme.primary }} /></span>
+                          <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-[#344a60]">{theme.label}</span><span className="mt-0.5 block text-[10px] text-[#8290a0]">{value === "teal" ? "Current portal direction" : "Assistant accent theme"}</span></span>
+                          {isSelected && <span className="text-[#1e765c]">✓</span>}
+                        </button>
+                      );
+                    })}
+                    <button type="button" onClick={() => appearanceForm.setValue("theme", "custom", { shouldDirty: true })} className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${selectedThemeName === "custom" ? "border-[#1e765c] bg-[#f4faf7] ring-2 ring-[#1e765c]/10" : "border-[#dbe3e9] bg-[#fbfcfd] hover:border-[#a9c2b6]"}`} aria-pressed={selectedThemeName === "custom"} data-testid="button-theme-custom">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: `linear-gradient(135deg, ${isValidHexColor(customThemeColor) ? customThemeColor : "#188b6a"} 0 50%, #10263f 50% 100%)` }}><span className="h-3.5 w-3.5 rounded-md border border-white/80 bg-white/30" /></span>
+                      <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-[#344a60]">Custom color</span><span className="mt-0.5 block text-[10px] text-[#8290a0]">Use your portal accent</span></span>
+                      {selectedThemeName === "custom" && <span className="text-[#1e765c]">✓</span>}
+                    </button>
+                  </div>
+                  {selectedThemeName === "custom" && (
+                    <div className="mt-4 rounded-lg border border-[#dbe3e9] bg-[#fbfcfd] p-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="color"
+                          aria-label="Custom theme color picker"
+                          value={isValidHexColor(customThemeColor) ? customThemeColor : "#188b6a"}
+                          onChange={(event) => updateCustomThemeColor(event.target.value)}
+                          className="h-10 w-12 cursor-pointer rounded-md border border-[#ced8e2] bg-white p-1"
+                          data-testid="input-custom-theme-color-picker"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <Label htmlFor="customThemeColor">Hexadecimal color</Label>
+                          <Input id="customThemeColor" value={customThemeColor} onChange={(event) => updateCustomThemeColor(event.target.value)} placeholder="#188B6A" maxLength={7} aria-invalid={Boolean(appearanceForm.formState.errors.customThemeColor)} data-testid="input-custom-theme-color" className="h-10 bg-white font-mono text-[12px] uppercase" />
+                        </div>
+                      </div>
+                      {appearanceForm.formState.errors.customThemeColor ? <p className="mt-2 text-[11px] text-destructive">{appearanceForm.formState.errors.customThemeColor.message}</p> : <p className="mt-2 text-[11px] text-[#718198]">Enter a 6-digit hexadecimal value, for example #188B6A.</p>}
+                    </div>
+                  )}
                 </div>
-                <p className="mt-4 text-[11px] leading-5 text-[#718198]">This preview represents the minimized long bar. The same icon and accent color are used for the closed floating button.</p>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-[#dbe3e9] bg-[#eef5f8]">
+                <div className="flex items-start justify-between border-b border-[#dbe3e9] bg-white px-4 py-3">
+                  <div><div className="text-[12px] font-semibold text-[#344a60]">Live launcher preview</div><div className="mt-0.5 text-[10px] text-[#8290a0]">Updates before you save</div></div>
+                  <span className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8290a0]">{appearanceForm.watch("launcherPosition") === "bottom-left" ? "Bottom left" : "Bottom right"}</span>
+                </div>
+                <div className={`relative min-h-[290px] p-5 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "text-left" : "text-right"}`}>
+                  <div className={`absolute bottom-16 flex max-w-[calc(100%-2.5rem)] items-center gap-2 rounded-xl border bg-white px-3 py-2.5 text-left shadow-[0_8px_20px_rgba(44,67,86,.12)] ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`} style={{ borderColor: `${selectedTheme.primary}44` }}>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]" style={{ backgroundColor: selectedTheme.primary, color: selectedTheme.foreground }}><PreviewIcon className="h-[17px] w-[17px]" /></span>
+                    <span className="min-w-0"><span className="block truncate text-[12px] font-semibold text-[#25364c]">{appearanceForm.watch("launcherStyle") === "pill" ? appearanceForm.watch("launcherLabel") || "Ask inSite" : appearanceForm.watch("assistantName") || "inSite Assistant"}</span><span className="block text-[10px] text-[#8290a0]">Ready to help!</span></span>
+                    <span className="ml-2 text-[12px] text-[#52667b]">↗</span><span className="text-[15px] text-[#263443]">×</span>
+                  </div>
+                  <div className={`absolute bottom-5 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`}>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full shadow-[0_5px_14px_rgba(38,74,62,.22)]" style={{ backgroundColor: selectedTheme.primary, color: selectedTheme.foreground }}><PreviewIcon className="h-5 w-5" /></span>
+                  </div>
+                </div>
               </div>
             </div>
             <div className="mt-5 grid gap-4 md:grid-cols-3">

@@ -63,6 +63,7 @@ function mapAppSettings(row) {
     enableChatLog: row.enable_chat_log === true || row.enable_chat_log === 1,
     assistantIcon: row.assistant_icon ?? "message-circle",
     theme: row.theme ?? "teal",
+    customThemeColor: row.custom_theme_color ?? null,
     launcherLabel: row.launcher_label ?? "Ask inSite",
     launcherPosition: row.launcher_position ?? "bottom-right",
     launcherStyle: row.launcher_style ?? "bubble",
@@ -277,6 +278,9 @@ export class DatabaseStorage {
       enableChatLog:     settings.enableChatLog     ?? (existingRow?.enable_chat_log === 1 || existingRow?.enable_chat_log === true) ?? false,
       assistantIcon:     settings.assistantIcon     ?? existingRow?.assistant_icon     ?? "message-circle",
       theme:             settings.theme             ?? existingRow?.theme             ?? "teal",
+      customThemeColor:  Object.prototype.hasOwnProperty.call(settings, "customThemeColor")
+        ? settings.customThemeColor
+        : existingRow?.custom_theme_color ?? null,
       launcherLabel:     settings.launcherLabel     ?? existingRow?.launcher_label     ?? "Ask inSite",
       launcherPosition:  settings.launcherPosition  ?? existingRow?.launcher_position  ?? "bottom-right",
       launcherStyle:     settings.launcherStyle     ?? existingRow?.launcher_style     ?? "bubble",
@@ -297,6 +301,7 @@ export class DatabaseStorage {
         .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
         .input("assistant_icon", sql.NVarChar(50), merged.assistantIcon)
         .input("theme", sql.NVarChar(50), merged.theme)
+        .input("custom_theme_color", sql.NVarChar(7), merged.customThemeColor)
         .input("launcher_label", sql.NVarChar(40), merged.launcherLabel)
         .input("launcher_position", sql.NVarChar(50), merged.launcherPosition)
         .input("launcher_style", sql.NVarChar(50), merged.launcherStyle)
@@ -312,6 +317,7 @@ export class DatabaseStorage {
                   enable_chat_log = @enable_chat_log,
                   assistant_icon = @assistant_icon,
                   theme = @theme,
+                  custom_theme_color = @custom_theme_color,
                   launcher_label = @launcher_label,
                   launcher_position = @launcher_position,
                   launcher_style = @launcher_style,
@@ -331,17 +337,18 @@ export class DatabaseStorage {
         .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
         .input("assistant_icon", sql.NVarChar(50), merged.assistantIcon)
         .input("theme", sql.NVarChar(50), merged.theme)
+        .input("custom_theme_color", sql.NVarChar(7), merged.customThemeColor)
         .input("launcher_label", sql.NVarChar(40), merged.launcherLabel)
         .input("launcher_position", sql.NVarChar(50), merged.launcherPosition)
         .input("launcher_style", sql.NVarChar(50), merged.launcherStyle)
         .query(`INSERT INTO app_settings
                   (assistant_name, welcome_message, not_found_message, custom_instructions,
                    temperature, top_p, max_tokens, frequency_penalty, presence_penalty, enable_chat_log,
-                   assistant_icon, theme, launcher_label, launcher_position, launcher_style)
+                    assistant_icon, theme, custom_theme_color, launcher_label, launcher_position, launcher_style)
                 VALUES
                   (@assistant_name, @welcome_message, @not_found_message, @custom_instructions,
                    @temperature, @top_p, @max_tokens, @frequency_penalty, @presence_penalty, @enable_chat_log,
-                   @assistant_icon, @theme, @launcher_label, @launcher_position, @launcher_style)`);
+                   @assistant_icon, @theme, @custom_theme_color, @launcher_label, @launcher_position, @launcher_style)`);
     }
 
     return this.getAppSettings();
