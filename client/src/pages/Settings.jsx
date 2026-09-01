@@ -99,6 +99,19 @@ const EMPTY_SOURCE = {
   isPortalWide: false,
 };
 
+const ASSISTANT_ICON_OPTIONS = [
+  { value: "message-circle", label: "Chat", Icon: MessageSquare },
+  { value: "sparkles", label: "Sparkles", Icon: Sparkles },
+  { value: "shield-check", label: "Assurance", Icon: ShieldCheck },
+];
+
+const THEME_OPTIONS = {
+  teal: { label: "Assurance Teal", primary: "#188b6a", surface: "#edf8f4", text: "#0f513f" },
+  ocean: { label: "Portal Blue", primary: "#2563eb", surface: "#eff6ff", text: "#1e3a8a" },
+  slate: { label: "Executive Slate", primary: "#475569", surface: "#f1f5f9", text: "#1e293b" },
+  amber: { label: "Warm Amber", primary: "#b45309", surface: "#fffbeb", text: "#78350f" },
+};
+
 export default function Settings() {
   const { toast } = useToast();
   const [testResult, setTestResult] = useState(null);
@@ -299,6 +312,11 @@ export default function Settings() {
       welcomeMessage: "Ask me anything about your SharePoint documents.",
       notFoundMessage: "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
       customInstructions: "",
+      assistantIcon: "message-circle",
+      theme: "teal",
+      launcherLabel: "Ask inSite",
+      launcherPosition: "bottom-right",
+      launcherStyle: "bubble",
     },
   });
 
@@ -313,6 +331,11 @@ export default function Settings() {
         welcomeMessage: appSettingsData.welcomeMessage,
         notFoundMessage: appSettingsData.notFoundMessage,
         customInstructions: appSettingsData.customInstructions ?? "",
+        assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
+        theme: appSettingsData.theme ?? "teal",
+        launcherLabel: appSettingsData.launcherLabel ?? "Ask inSite",
+        launcherPosition: appSettingsData.launcherPosition ?? "bottom-right",
+        launcherStyle: appSettingsData.launcherStyle ?? "bubble",
       });
     }
   }, [appSettingsData]);
@@ -447,6 +470,14 @@ export default function Settings() {
   const previewPhrases = useMemo(() => extractStyledPhrases(instructionsValue), [instructionsValue]);
   const previewBodyStyle = useMemo(() => extractGlobalResponseStyle(instructionsValue), [instructionsValue]);
   const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
+  const selectedTheme = THEME_OPTIONS[appearanceForm.watch("theme")] ?? THEME_OPTIONS.teal;
+  const selectedIcon = ASSISTANT_ICON_OPTIONS.find(
+    (option) => option.value === appearanceForm.watch("assistantIcon"),
+  ) ?? ASSISTANT_ICON_OPTIONS[0];
+  const PreviewIcon = selectedIcon.Icon;
+  const launcherLabel = appearanceForm.watch("launcherLabel") || "Ask inSite";
+  const launcherStyle = appearanceForm.watch("launcherStyle") || "bubble";
+  const launcherPosition = appearanceForm.watch("launcherPosition") || "bottom-right";
 
   const handleSaveActiveTab = () => {
     if (activeTab === "general") {
@@ -473,6 +504,11 @@ export default function Settings() {
         welcomeMessage: appSettingsData.welcomeMessage,
         notFoundMessage: appSettingsData.notFoundMessage,
         customInstructions: appSettingsData.customInstructions ?? "",
+        assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
+        theme: appSettingsData.theme ?? "teal",
+        launcherLabel: appSettingsData.launcherLabel ?? "Ask inSite",
+        launcherPosition: appSettingsData.launcherPosition ?? "bottom-right",
+        launcherStyle: appSettingsData.launcherStyle ?? "bubble",
       });
     }
     if (activeTab === "chat-behavior" && appSettingsData) {
@@ -635,9 +671,13 @@ export default function Settings() {
         >
         <form onSubmit={appearanceForm.handleSubmit((d) => saveAppearance.mutate(d))}>
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-              Widget Appearance
-            </h2>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#188b6a]">General presentation</p>
+              <h2 className="mt-1 text-lg font-semibold text-[#102a43]">Introduce the assistant clearly</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Set the language administrators and portal users see before and during a conversation.
+              </p>
+            </div>
 
             <div className="space-y-1">
               <Label htmlFor="assistantName">Assistant Name</Label>
@@ -766,6 +806,147 @@ export default function Settings() {
               </div>
             </div>
 
+          </div>
+
+          <div className="mt-6 rounded-xl border border-border bg-card p-6 space-y-5" data-testid="theme-launcher-section">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#188b6a]">Theme &amp; launcher</p>
+              <h2 className="mt-1 text-lg font-semibold text-[#102a43]">Match the portal experience</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose the assistant mark, accent theme, launcher wording, placement, and shape.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Assistant icon</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {ASSISTANT_ICON_OPTIONS.map(({ value, label, Icon }) => {
+                    const isSelected = appearanceForm.watch("assistantIcon") === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => appearanceForm.setValue("assistantIcon", value, { shouldDirty: true })}
+                        className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-3 py-3 text-xs font-medium transition-colors ${
+                          isSelected
+                            ? "border-[#188b6a] bg-[#edf8f4] text-[#126b52] ring-1 ring-[#188b6a]/20"
+                            : "border-border bg-white text-muted-foreground hover:border-[#a9c9bd] hover:bg-[#fbfefd]"
+                        }`}
+                        aria-pressed={isSelected}
+                        data-testid={`button-assistant-icon-${value}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Accent theme</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(THEME_OPTIONS).map(([value, theme]) => {
+                    const isSelected = appearanceForm.watch("theme") === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => appearanceForm.setValue("theme", value, { shouldDirty: true })}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-left text-xs font-medium transition-colors ${
+                          isSelected ? "border-[#188b6a] ring-1 ring-[#188b6a]/20" : "border-border hover:bg-muted/30"
+                        }`}
+                        aria-pressed={isSelected}
+                        data-testid={`button-theme-${value}`}
+                      >
+                        <span className="h-7 w-7 rounded-full border-4 border-white shadow-sm" style={{ backgroundColor: theme.primary }} />
+                        <span>{theme.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="space-y-1">
+                <Label htmlFor="launcherLabel">Launcher label</Label>
+                <Input
+                  id="launcherLabel"
+                  maxLength={40}
+                  placeholder="Ask inSite"
+                  {...appearanceForm.register("launcherLabel")}
+                  data-testid="input-launcher-label"
+                />
+                <p className="text-xs text-muted-foreground">Shown when the pill launcher is selected.</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="launcherStyle">Launcher style</Label>
+                <select
+                  id="launcherStyle"
+                  {...appearanceForm.register("launcherStyle")}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                  data-testid="select-launcher-style"
+                >
+                  <option value="bubble">Icon bubble</option>
+                  <option value="pill">Icon with label</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="launcherPosition">Screen position</Label>
+                <select
+                  id="launcherPosition"
+                  {...appearanceForm.register("launcherPosition")}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm outline-none focus:ring-1 focus:ring-ring"
+                  data-testid="select-launcher-position"
+                >
+                  <option value="bottom-right">Bottom right</option>
+                  <option value="bottom-left">Bottom left</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-[#dbe7eb] bg-[#edf3f6]" data-testid="launcher-preview">
+              <div className="flex items-center justify-between border-b border-[#dbe7eb] bg-white px-4 py-3">
+                <div>
+                  <p className="text-xs font-semibold text-[#102a43]">Live launcher preview</p>
+                  <p className="text-[10px] text-muted-foreground">Updates before you save</p>
+                </div>
+                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  {launcherPosition === "bottom-left" ? "Bottom left" : "Bottom right"}
+                </span>
+              </div>
+              <div className={`flex min-h-44 items-end p-5 ${launcherPosition === "bottom-left" ? "justify-start" : "justify-end"}`}>
+                <div className="space-y-3">
+                  <div className="w-64 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
+                    <div className="flex items-center gap-2 px-3 py-2.5 text-white" style={{ backgroundColor: selectedTheme.primary }}>
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
+                        <PreviewIcon className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-semibold">{appearanceForm.watch("assistantName") || "inSite Assistant"}</p>
+                        <p className="text-[9px] text-white/75">Ready to help</p>
+                      </div>
+                    </div>
+                    <div className="p-3 text-[10px]" style={{ backgroundColor: selectedTheme.surface, color: selectedTheme.text }}>
+                      {appearanceForm.watch("welcomeMessage") || "Ask me anything about your portal documents."}
+                    </div>
+                  </div>
+                  <div className={`flex ${launcherPosition === "bottom-left" ? "justify-start" : "justify-end"}`}>
+                    <div
+                      className={`flex items-center justify-center gap-2 text-white shadow-lg ${
+                        launcherStyle === "pill" ? "min-h-11 rounded-full px-4" : "h-12 w-12 rounded-full"
+                      }`}
+                      style={{ backgroundColor: selectedTheme.primary }}
+                    >
+                      <PreviewIcon className="h-5 w-5" />
+                      {launcherStyle === "pill" && <span className="text-xs font-semibold">{launcherLabel}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </form>
         </div>

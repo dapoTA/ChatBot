@@ -766,6 +766,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
         assistantName: s?.assistantName ?? "inSite Assistant",
         welcomeMessage: s?.welcomeMessage ?? "Ask me anything about Human Resources or Paid Time Off.",
         responseStyle: extractGlobalResponseStyle(s?.customInstructions ?? ""),
+        assistantIcon: s?.assistantIcon ?? "message-circle",
+        theme: s?.theme ?? "teal",
+        launcherLabel: s?.launcherLabel ?? "Ask inSite",
+        launcherPosition: s?.launcherPosition ?? "bottom-right",
+        launcherStyle: s?.launcherStyle ?? "bubble",
       });
     } catch (err) {
       console.error("GET /api/settings/public error:", err);
@@ -788,6 +793,11 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       frequencyPenalty: settings?.frequencyPenalty ?? 0,
       presencePenalty: settings?.presencePenalty ?? 0,
       enableChatLog: settings?.enableChatLog ?? false,
+      assistantIcon: settings?.assistantIcon ?? "message-circle",
+      theme: settings?.theme ?? "teal",
+      launcherLabel: settings?.launcherLabel ?? "Ask inSite",
+      launcherPosition: settings?.launcherPosition ?? "bottom-right",
+      launcherStyle: settings?.launcherStyle ?? "bubble",
     });
   });
 

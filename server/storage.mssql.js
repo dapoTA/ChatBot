@@ -61,6 +61,11 @@ function mapAppSettings(row) {
     frequencyPenalty: row.frequency_penalty,
     presencePenalty: row.presence_penalty,
     enableChatLog: row.enable_chat_log === true || row.enable_chat_log === 1,
+    assistantIcon: row.assistant_icon ?? "message-circle",
+    theme: row.theme ?? "teal",
+    launcherLabel: row.launcher_label ?? "Ask inSite",
+    launcherPosition: row.launcher_position ?? "bottom-right",
+    launcherStyle: row.launcher_style ?? "bubble",
     updatedAt: row.updated_at,
   };
 }
@@ -270,6 +275,11 @@ export class DatabaseStorage {
       frequencyPenalty:  settings.frequencyPenalty  ?? existingRow?.frequency_penalty  ?? 0,
       presencePenalty:   settings.presencePenalty   ?? existingRow?.presence_penalty   ?? 0,
       enableChatLog:     settings.enableChatLog     ?? (existingRow?.enable_chat_log === 1 || existingRow?.enable_chat_log === true) ?? false,
+      assistantIcon:     settings.assistantIcon     ?? existingRow?.assistant_icon     ?? "message-circle",
+      theme:             settings.theme             ?? existingRow?.theme             ?? "teal",
+      launcherLabel:     settings.launcherLabel     ?? existingRow?.launcher_label     ?? "Ask inSite",
+      launcherPosition:  settings.launcherPosition  ?? existingRow?.launcher_position  ?? "bottom-right",
+      launcherStyle:     settings.launcherStyle     ?? existingRow?.launcher_style     ?? "bubble",
     };
 
     if (existingRow) {
@@ -285,6 +295,11 @@ export class DatabaseStorage {
         .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
         .input("presence_penalty", sql.Float, merged.presencePenalty)
         .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
+        .input("assistant_icon", sql.NVarChar(50), merged.assistantIcon)
+        .input("theme", sql.NVarChar(50), merged.theme)
+        .input("launcher_label", sql.NVarChar(40), merged.launcherLabel)
+        .input("launcher_position", sql.NVarChar(50), merged.launcherPosition)
+        .input("launcher_style", sql.NVarChar(50), merged.launcherStyle)
         .query(`UPDATE app_settings SET
                   assistant_name = @assistant_name,
                   welcome_message = @welcome_message,
@@ -295,6 +310,11 @@ export class DatabaseStorage {
                   frequency_penalty = @frequency_penalty,
                   presence_penalty = @presence_penalty,
                   enable_chat_log = @enable_chat_log,
+                  assistant_icon = @assistant_icon,
+                  theme = @theme,
+                  launcher_label = @launcher_label,
+                  launcher_position = @launcher_position,
+                  launcher_style = @launcher_style,
                   updated_at = GETDATE()
                 WHERE id = @id`);
     } else {
@@ -309,12 +329,19 @@ export class DatabaseStorage {
         .input("frequency_penalty", sql.Float, merged.frequencyPenalty)
         .input("presence_penalty", sql.Float, merged.presencePenalty)
         .input("enable_chat_log", sql.Bit, merged.enableChatLog ? 1 : 0)
+        .input("assistant_icon", sql.NVarChar(50), merged.assistantIcon)
+        .input("theme", sql.NVarChar(50), merged.theme)
+        .input("launcher_label", sql.NVarChar(40), merged.launcherLabel)
+        .input("launcher_position", sql.NVarChar(50), merged.launcherPosition)
+        .input("launcher_style", sql.NVarChar(50), merged.launcherStyle)
         .query(`INSERT INTO app_settings
                   (assistant_name, welcome_message, not_found_message, custom_instructions,
-                   temperature, top_p, max_tokens, frequency_penalty, presence_penalty, enable_chat_log)
+                   temperature, top_p, max_tokens, frequency_penalty, presence_penalty, enable_chat_log,
+                   assistant_icon, theme, launcher_label, launcher_position, launcher_style)
                 VALUES
                   (@assistant_name, @welcome_message, @not_found_message, @custom_instructions,
-                   @temperature, @top_p, @max_tokens, @frequency_penalty, @presence_penalty, @enable_chat_log)`);
+                   @temperature, @top_p, @max_tokens, @frequency_penalty, @presence_penalty, @enable_chat_log,
+                   @assistant_icon, @theme, @launcher_label, @launcher_position, @launcher_style)`);
     }
 
     return this.getAppSettings();

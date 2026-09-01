@@ -53,6 +53,11 @@ export const appSettings = pgTable("app_settings", {
   frequencyPenalty: real("frequency_penalty").notNull().default(0),
   presencePenalty: real("presence_penalty").notNull().default(0),
   enableChatLog: boolean("enable_chat_log").notNull().default(false),
+  assistantIcon: text("assistant_icon").notNull().default("message-circle"),
+  theme: text("theme").notNull().default("teal"),
+  launcherLabel: text("launcher_label").notNull().default("Ask inSite"),
+  launcherPosition: text("launcher_position").notNull().default("bottom-right"),
+  launcherStyle: text("launcher_style").notNull().default("bubble"),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
@@ -89,7 +94,14 @@ export const chatLogs = pgTable("chat_logs", {
 // don't accidentally overwrite the toggle back to false.
 export const insertAppSettingsSchema = createInsertSchema(appSettings)
   .omit({ id: true, updatedAt: true })
-  .extend({ enableChatLog: z.boolean().optional() });
+  .extend({
+    enableChatLog: z.boolean().optional(),
+    assistantIcon: z.enum(["message-circle", "sparkles", "shield-check"]).optional(),
+    theme: z.enum(["teal", "ocean", "slate", "amber"]).optional(),
+    launcherLabel: z.string().trim().max(40).optional(),
+    launcherPosition: z.enum(["bottom-right", "bottom-left"]).optional(),
+    launcherStyle: z.enum(["bubble", "pill"]).optional(),
+  });
 export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({

@@ -93,6 +93,21 @@ const statements = [
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'enable_chat_log')
    ALTER TABLE app_settings ADD enable_chat_log BIT NOT NULL DEFAULT 0`,
 
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'assistant_icon')
+   ALTER TABLE app_settings ADD assistant_icon NVARCHAR(50) NOT NULL CONSTRAINT df_app_settings_assistant_icon DEFAULT 'message-circle'`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'theme')
+   ALTER TABLE app_settings ADD theme NVARCHAR(50) NOT NULL CONSTRAINT df_app_settings_theme DEFAULT 'teal'`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'launcher_label')
+   ALTER TABLE app_settings ADD launcher_label NVARCHAR(40) NOT NULL CONSTRAINT df_app_settings_launcher_label DEFAULT 'Ask inSite'`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'launcher_position')
+   ALTER TABLE app_settings ADD launcher_position NVARCHAR(50) NOT NULL CONSTRAINT df_app_settings_launcher_position DEFAULT 'bottom-right'`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'launcher_style')
+   ALTER TABLE app_settings ADD launcher_style NVARCHAR(50) NOT NULL CONSTRAINT df_app_settings_launcher_style DEFAULT 'bubble'`,
+
   `IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='chat_logs' AND xtype='U')
    CREATE TABLE chat_logs (
      id                  INT IDENTITY(1,1) PRIMARY KEY,

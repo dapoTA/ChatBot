@@ -1,13 +1,31 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
+import { MessageCircle, X, Minus, Maximize2, Sparkles, ShieldCheck } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import Chat from "@/pages/Chat";
 
 const DEFAULTS = {
   assistantName: "ON-PNT® Assistant",
   welcomeMessage: "Ask me anything about your SharePoint documents.",
+  assistantIcon: "message-circle",
+  theme: "teal",
+  launcherLabel: "Ask inSite",
+  launcherPosition: "bottom-right",
+  launcherStyle: "bubble",
+};
+
+const THEME_PRESETS = {
+  teal: { color: "#188b6a", hsl: "160 71% 32%" },
+  ocean: { color: "#2563eb", hsl: "221 83% 53%" },
+  slate: { color: "#475569", hsl: "215 25% 37%" },
+  amber: { color: "#b45309", hsl: "32 95% 37%" },
+};
+
+const ICONS = {
+  "message-circle": MessageCircle,
+  sparkles: Sparkles,
+  "shield-check": ShieldCheck,
 };
 
 export function ChatWidget() {
@@ -53,6 +71,15 @@ export function ChatWidget() {
   const assistantName = settings?.assistantName || DEFAULTS.assistantName;
   const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
   const responseStyle = settings?.responseStyle || null;
+  const assistantIcon = settings?.assistantIcon || DEFAULTS.assistantIcon;
+  const themeName = settings?.theme || DEFAULTS.theme;
+  const launcherLabel = settings?.launcherLabel || DEFAULTS.launcherLabel;
+  const launcherPosition = settings?.launcherPosition || DEFAULTS.launcherPosition;
+  const launcherStyle = settings?.launcherStyle || DEFAULTS.launcherStyle;
+  const theme = THEME_PRESETS[themeName] || THEME_PRESETS.teal;
+  const AssistantIcon = ICONS[assistantIcon] || MessageCircle;
+  const launcherSide = launcherPosition === "bottom-left" ? { left: 24 } : { right: 24 };
+  const dialogSide = launcherPosition === "bottom-left" ? { left: 20 } : { right: 20 };
 
   const notifyParent = (event) => {
     try {
@@ -133,12 +160,21 @@ export function ChatWidget() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={handleOpen}
-            style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999 }}
-            className="p-4 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow"
+            style={{
+              position: "fixed",
+              bottom: 24,
+              zIndex: 9999,
+              backgroundColor: theme.color,
+              ...launcherSide,
+            }}
+            className={`flex items-center justify-center gap-2 text-white shadow-lg transition-shadow hover:shadow-xl ${
+              launcherStyle === "pill" ? "min-h-12 rounded-full px-5" : "h-14 w-14 rounded-full"
+            }`}
             data-testid="button-open-chat"
             aria-label="Open chat"
           >
-            <MessageCircle className="w-6 h-6" />
+            <AssistantIcon className="w-6 h-6" />
+            {launcherStyle === "pill" && <span className="text-sm font-semibold">{launcherLabel}</span>}
           </motion.button>
         )}
       </AnimatePresence>
@@ -159,6 +195,9 @@ export function ChatWidget() {
               zIndex: 9999,
               width: 420,
               maxWidth: "calc(100vw - 40px)",
+              "--primary": theme.hsl,
+              "--primary-foreground": "0 0% 100%",
+              ...dialogSide,
             }}
             data-testid="dialog-chat"
           >
@@ -184,14 +223,14 @@ export function ChatWidget() {
                       width: 28,
                       height: 28,
                       borderRadius: "50%",
-                      background: "hsl(var(--primary))",
+                      background: theme.color,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                     }}
                   >
-                    <MessageCircle
-                      style={{ width: 14, height: 14, color: "hsl(var(--primary-foreground))" }}
+                    <AssistantIcon
+                      style={{ width: 14, height: 14, color: "#ffffff" }}
                     />
                   </div>
                   <span
@@ -242,14 +281,14 @@ export function ChatWidget() {
                         width: 28,
                         height: 28,
                         borderRadius: "50%",
-                        background: "hsl(var(--primary))",
+                        background: theme.color,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                       }}
                     >
-                      <MessageCircle
-                        style={{ width: 14, height: 14, color: "hsl(var(--primary-foreground))" }}
+                      <AssistantIcon
+                        style={{ width: 14, height: 14, color: "#ffffff" }}
                       />
                     </div>
                     <span style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}>
