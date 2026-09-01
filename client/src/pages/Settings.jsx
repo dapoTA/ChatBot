@@ -26,9 +26,20 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  ShieldCheck,
+  LayoutDashboard,
+  Sparkles,
+  FolderOpen,
+  SlidersHorizontal,
+  MessageSquare,
+  Activity,
+  LockKeyhole,
+  BarChart3,
+  ChevronRight,
 } from "lucide-react";
 import { extractStyledPhrases, extractGlobalResponseStyle } from "@/lib/styleParser";
 import { insertSharepointConfigSchema, insertAppSettingsSchema } from "@shared/schema";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ─── Appearance form ────────────────────────────────────────────────────────
 
@@ -94,6 +105,7 @@ export default function Settings() {
   const [enableChatLog, setEnableChatLog] = useState(false);
   const [logFrom, setLogFrom] = useState("");
   const [logTo, setLogTo] = useState("");
+  const [activeTab, setActiveTab] = useState("general");
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
@@ -436,21 +448,191 @@ export default function Settings() {
   const previewBodyStyle = useMemo(() => extractGlobalResponseStyle(instructionsValue), [instructionsValue]);
   const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
 
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
+  const handleSaveActiveTab = () => {
+    if (activeTab === "general") {
+      appearanceForm.handleSubmit((data) => saveAppearance.mutate(data))();
+      return;
+    }
+    if (activeTab === "chat-behavior") {
+      aiParamsForm.handleSubmit((data) => saveAiParams.mutate(data))();
+      return;
+    }
+    if (activeTab === "knowledge-sources") {
+      if (editingSourceId !== null) {
+        handleSaveKnowledgeSource({ preventDefault: () => {} });
+      } else {
+        sharepointForm.handleSubmit((data) => saveSharepoint.mutate(data))();
+      }
+    }
+  };
 
-        {/* Page Header */}
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground" data-testid="text-settings-title">
-            Administration
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configure the chat widget appearance and SharePoint document library connection.
-          </p>
+  const handleDiscardActiveTab = () => {
+    if (activeTab === "general" && appSettingsData) {
+      appearanceForm.reset({
+        assistantName: appSettingsData.assistantName,
+        welcomeMessage: appSettingsData.welcomeMessage,
+        notFoundMessage: appSettingsData.notFoundMessage,
+        customInstructions: appSettingsData.customInstructions ?? "",
+      });
+    }
+    if (activeTab === "chat-behavior" && appSettingsData) {
+      aiParamsForm.reset({
+        temperature: appSettingsData.temperature ?? 0,
+        topP: appSettingsData.topP ?? 1,
+        maxTokens: appSettingsData.maxTokens ?? 1500,
+        frequencyPenalty: appSettingsData.frequencyPenalty ?? 0,
+        presencePenalty: appSettingsData.presencePenalty ?? 0,
+      });
+    }
+    if (activeTab === "knowledge-sources") {
+      closeSourceEditor();
+      setTestResult(null);
+      if (config) {
+        sharepointForm.reset({
+          mode: config.mode ?? "onprem",
+          siteUrl: config.siteUrl,
+          siteUrlOnprem: config.siteUrlOnprem ?? (config.mode === "onprem" ? config.siteUrl : ""),
+          siteUrlOnline: config.siteUrlOnline ?? (config.mode === "online" ? config.siteUrl : ""),
+          libraryName: config.libraryName,
+          domain: config.domain ?? "",
+          username: config.username ?? "",
+          password: config.password ?? "",
+          allowSelfSigned: config.allowSelfSigned,
+          tenantId: config.tenantId ?? "",
+          clientId: config.clientId ?? "",
+          clientSecret: config.clientSecret ?? "",
+        });
+      }
+    }
+  };
+
+  const activeSavePending =
+    (activeTab === "general" && saveAppearance.isPending)
+    || (activeTab === "chat-behavior" && saveAiParams.isPending)
+    || (activeTab === "knowledge-sources" && (saveKnowledgeSource.isPending || saveSharepoint.isPending));
+  const activeHasUnsavedChanges =
+    (activeTab === "general" && appearanceForm.formState.isDirty)
+    || (activeTab === "chat-behavior" && aiParamsForm.formState.isDirty)
+    || (activeTab === "knowledge-sources" && (sharepointForm.formState.isDirty || editingSourceId !== null));
+
+  return (
+    <div className="min-h-screen bg-[#eef4f8] text-foreground">
+      <header className="h-16 bg-[#0b2942] text-white flex items-center justify-between px-5 md:px-8 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1e9b75] shadow-inner">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <div className="leading-tight">
+            <p className="text-[9px] font-semibold tracking-[0.24em] text-[#8fc9b4] uppercase">Technical Assurance</p>
+            <p className="text-sm font-semibold tracking-tight">inSite Assistant</p>
+          </div>
         </div>
+        <div className="flex items-center gap-2 text-xs text-[#c7d9e5]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#61d39c]" />
+          Configuration
+        </div>
+      </header>
+
+      <div className="flex min-h-[calc(100vh-4rem)]">
+        <aside className="hidden w-60 shrink-0 border-r border-[#dce7ed] bg-[#f7fafc] px-4 py-7 lg:block">
+          <div className="px-3">
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Administration</p>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Keep the assistant aligned with your portal and assurance standards.
+            </p>
+          </div>
+          <nav className="mt-8 space-y-1" aria-label="Administration">
+            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+              <LayoutDashboard className="h-4 w-4" />
+              Overview
+            </a>
+            <a href="#assistant-settings" className="flex items-center gap-3 rounded-md bg-white px-3 py-2.5 text-xs font-semibold text-[#188b6a] shadow-sm ring-1 ring-[#dfe9e8]">
+              <Sparkles className="h-4 w-4" />
+              Assistant
+            </a>
+            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+              <SlidersHorizontal className="h-4 w-4" />
+              Experience
+            </a>
+            <a href="#" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-xs text-muted-foreground hover:bg-white hover:text-foreground">
+              <Activity className="h-4 w-4" />
+              Usage
+            </a>
+          </nav>
+          <div className="my-7 border-t border-[#dce7ed]" />
+          <div className="px-3">
+            <p className="text-[10px] font-semibold tracking-[0.18em] text-muted-foreground uppercase">Environment</p>
+            <div className="mt-4 space-y-3 text-xs text-muted-foreground">
+              <div className="flex items-center gap-3 text-[#188b6a]">
+                <FolderOpen className="h-4 w-4" />
+                Production portal
+              </div>
+              <div className="flex items-center gap-3">
+                <LockKeyhole className="h-4 w-4" />
+                Admin access only
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <main className="min-w-0 flex-1 px-4 py-8 md:px-8 lg:px-12">
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div id="assistant-settings" className="flex items-end justify-between gap-4">
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>Assistant</span>
+                  <ChevronRight className="h-3 w-3" />
+                  <span className="font-medium text-[#188b6a]">Settings</span>
+                </div>
+                <h1 className="text-2xl font-semibold tracking-tight text-[#102a43]" data-testid="text-settings-title">
+                  Assistant settings
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Control how inSite Assistant is presented, grounded, and maintained.
+                </p>
+              </div>
+              <div className="hidden items-center gap-2 pb-1 text-xs text-muted-foreground sm:flex">
+                <CheckCircle className={`h-3.5 w-3.5 ${activeHasUnsavedChanges ? "text-amber-500" : "text-[#1e9b75]"}`} />
+                {activeHasUnsavedChanges ? "Unsaved changes" : "All changes saved"}
+              </div>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="overflow-hidden rounded-xl border border-[#dce7ed] bg-white shadow-sm">
+              <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b border-[#e2ebef] bg-white p-0 sm:grid-cols-4">
+                <TabsTrigger value="general" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                  <span className="flex items-center gap-2.5">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    <span><strong className="block font-semibold">General</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Branding and presentation</span></span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="knowledge-sources" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                  <span className="flex items-center gap-2.5">
+                    <FolderOpen className="h-4 w-4" />
+                    <span><strong className="block font-semibold">Knowledge Sources</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Where answers come from</span></span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="chat-behavior" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                  <span className="flex items-center gap-2.5">
+                    <MessageSquare className="h-4 w-4" />
+                    <span><strong className="block font-semibold">Chat Behavior</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Response guardrails</span></span>
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="logging-exports" className="h-16 rounded-none border-b-2 border-transparent px-3 text-left text-xs text-muted-foreground data-[state=active]:border-[#1e9b75] data-[state=active]:bg-[#fbfefd] data-[state=active]:text-[#167b60] data-[state=active]:shadow-none">
+                  <span className="flex items-center gap-2.5">
+                    <BarChart3 className="h-4 w-4" />
+                    <span><strong className="block font-semibold">Logging &amp; Exports</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Records and retention</span></span>
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+              <div className="p-4 sm:p-6">
 
         {/* ── Widget Appearance ───────────────────────────────────────────── */}
+        <div
+          className={activeTab === "general" ? "block" : "hidden"}
+          role="tabpanel"
+          aria-label="General settings"
+          data-testid="settings-panel-general"
+        >
         <form onSubmit={appearanceForm.handleSubmit((d) => saveAppearance.mutate(d))}>
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -584,14 +766,17 @@ export default function Settings() {
               </div>
             </div>
 
-            <Button type="submit" disabled={saveAppearance.isPending} data-testid="button-save-appearance">
-              <Save className="w-4 h-4 mr-2" />
-              {saveAppearance.isPending ? "Saving…" : "Save Appearance"}
-            </Button>
           </div>
         </form>
+        </div>
 
         {/* ── Knowledge Sources ───────────────────────────────────────────── */}
+        <div
+          className={activeTab === "knowledge-sources" ? "block space-y-6" : "hidden"}
+          role="tabpanel"
+          aria-label="Knowledge Sources settings"
+          data-testid="settings-panel-knowledge-sources"
+        >
         <section id="knowledge-sources" className="rounded-xl border border-border bg-card p-6 space-y-5" data-testid="knowledge-sources-section">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -993,8 +1178,15 @@ export default function Settings() {
             </form>
           )}
         </section>
+        </div>
 
         {/* ── AI Model Parameters ─────────────────────────────────────────── */}
+        <div
+          className={activeTab === "chat-behavior" ? "block" : "hidden"}
+          role="tabpanel"
+          aria-label="Chat Behavior settings"
+          data-testid="settings-panel-chat-behavior"
+        >
         <form onSubmit={aiParamsForm.handleSubmit((d) => saveAiParams.mutate(d))}>
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
             <div>
@@ -1085,14 +1277,17 @@ export default function Settings() {
               </div>
             </div>
 
-            <Button type="submit" disabled={saveAiParams.isPending} data-testid="button-save-ai-params">
-              <Save className="w-4 h-4 mr-2" />
-              {saveAiParams.isPending ? "Saving…" : "Save AI Parameters"}
-            </Button>
           </div>
         </form>
+        </div>
 
         {/* ── Chat Logging ────────────────────────────────────────────────── */}
+        <div
+          className={activeTab === "logging-exports" ? "block" : "hidden"}
+          role="tabpanel"
+          aria-label="Logging and Exports settings"
+          data-testid="settings-panel-logging-exports"
+        >
         <div className="rounded-xl border border-border bg-card p-6 space-y-5">
           <div>
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -1152,8 +1347,14 @@ export default function Settings() {
             </Button>
           </div>
         </div>
+        </div>
 
         {/* ── SharePoint Connection ───────────────────────────────────────── */}
+        <div
+          className={activeTab === "knowledge-sources" ? "block space-y-6" : "hidden"}
+          aria-label="SharePoint connection settings"
+          data-testid="settings-panel-sharepoint"
+        >
         <form onSubmit={sharepointForm.handleSubmit((d) => saveSharepoint.mutate(d))} className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-6 space-y-5">
             <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
@@ -1486,7 +1687,27 @@ export default function Settings() {
           <strong className="text-foreground">On-premises mode:</strong> The server must have direct network access to your SharePoint environment. Authentication uses NTLM with Active Directory credentials.{" "}
           <strong className="text-foreground">SharePoint Online mode:</strong> Requires an Azure AD app registration with Sites.Read.All permission and admin consent.
         </div>
+        </div>
 
+              </div>
+              <div className="flex flex-col gap-3 border-t border-[#e2ebef] bg-[#fbfcfd] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CheckCircle className={`h-3.5 w-3.5 ${activeHasUnsavedChanges ? "text-amber-500" : "text-[#1e9b75]"}`} />
+                  {activeHasUnsavedChanges ? "Review changes before leaving this tab" : "Last updated just now"}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={handleDiscardActiveTab} data-testid="button-discard-settings">
+                    Discard
+                  </Button>
+                  <Button type="button" onClick={handleSaveActiveTab} disabled={activeSavePending} className="bg-[#188b6a] text-white hover:bg-[#147457]" data-testid="button-save-settings">
+                    <Save className="mr-2 h-4 w-4" />
+                    {activeSavePending ? "Saving…" : "Save changes"}
+                  </Button>
+                </div>
+              </div>
+            </Tabs>
+          </div>
+        </main>
       </div>
     </div>
   );

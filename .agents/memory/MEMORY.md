@@ -1,1 +1,2 @@
 - [User preferences](user-preferences.md) — end every thread with the user’s specified account reminder link.
+- [Main and design baseline](main-design-baseline.md) — preserve the legacy/main baseline for testing while approved design work stays synchronized with implementation.
