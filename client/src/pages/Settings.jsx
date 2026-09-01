@@ -118,7 +118,7 @@ export default function Settings() {
   const [enableChatLog, setEnableChatLog] = useState(false);
   const [logFrom, setLogFrom] = useState("");
   const [logTo, setLogTo] = useState("");
-  const [activeTab, setActiveTab] = useState("knowledge-sources");
+  const [activeTab, setActiveTab] = useState("general");
 
   // ─── Fetch current settings ────────────────────────────────────────────────
 
@@ -475,9 +475,6 @@ export default function Settings() {
     (option) => option.value === appearanceForm.watch("assistantIcon"),
   ) ?? ASSISTANT_ICON_OPTIONS[0];
   const PreviewIcon = selectedIcon.Icon;
-  const launcherLabel = appearanceForm.watch("launcherLabel") || "Ask inSite";
-  const launcherStyle = appearanceForm.watch("launcherStyle") || "bubble";
-  const launcherPosition = appearanceForm.watch("launcherPosition") || "bottom-right";
 
   const handleSaveActiveTab = () => {
     if (activeTab === "general") {
@@ -634,25 +631,25 @@ export default function Settings() {
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="overflow-hidden rounded-xl border border-[#d8e1e8] bg-white shadow-[0_8px_30px_rgba(35,57,77,.06)]">
               <TabsList className="grid h-auto w-full grid-cols-2 gap-0 rounded-none border-b border-[#dce4e9] bg-[#fbfcfd] px-2 py-0 sm:grid-cols-4 sm:px-4">
-                <TabsTrigger value="general" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
+                <TabsTrigger id="settings-tab-general" aria-controls="settings-panel-general" value="general" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <SlidersHorizontal className="h-4 w-4" />
                     <span><strong className="block font-semibold">General</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Branding and presentation</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="knowledge-sources" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
+                <TabsTrigger id="settings-tab-knowledge-sources" aria-controls="settings-panel-knowledge-sources settings-panel-sharepoint" value="knowledge-sources" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <FolderOpen className="h-4 w-4" />
                     <span><strong className="block font-semibold">Knowledge Sources</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Where answers come from</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="chat-behavior" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
+                <TabsTrigger id="settings-tab-chat-behavior" aria-controls="settings-panel-chat-behavior" value="chat-behavior" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <MessageSquare className="h-4 w-4" />
                     <span><strong className="block font-semibold">Chat Behavior</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Response guardrails</span></span>
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="logging-exports" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
+                <TabsTrigger id="settings-tab-logging-exports" aria-controls="settings-panel-logging-exports" value="logging-exports" className="h-16 rounded-none border-b-2 border-transparent bg-transparent px-3 text-left text-[12px] text-[#718198] shadow-none data-[state=active]:border-[#1e765c] data-[state=active]:bg-transparent data-[state=active]:text-[#1b7057] data-[state=active]:shadow-none">
                   <span className="flex items-center gap-2.5">
                     <BarChart3 className="h-4 w-4" />
                     <span><strong className="block font-semibold">Logging &amp; Exports</strong><span className="hidden text-[10px] font-normal opacity-70 md:block">Records and retention</span></span>
@@ -663,297 +660,152 @@ export default function Settings() {
 
         {/* ── Widget Appearance ───────────────────────────────────────────── */}
         <div
+          id="settings-panel-general"
           className={activeTab === "general" ? "block" : "hidden"}
           role="tabpanel"
+          aria-labelledby="settings-tab-general"
           aria-label="General settings"
           data-testid="settings-panel-general"
         >
-        <form onSubmit={appearanceForm.handleSubmit((d) => saveAppearance.mutate(d))}>
-          <div className="rounded-xl border border-border bg-card p-6 space-y-5">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#188b6a]">General presentation</p>
-              <h2 className="mt-1 text-lg font-semibold text-[#102a43]">Introduce the assistant clearly</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Set the language administrators and portal users see before and during a conversation.
-              </p>
+        <form onSubmit={appearanceForm.handleSubmit((d) => saveAppearance.mutate(d))} className="space-y-10">
+          <section aria-labelledby="presentation-heading">
+            <div className="mb-6">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Presentation</p>
+              <h2 id="presentation-heading" className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Make the assistant recognisable</h2>
+              <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">These values appear in the chat launcher, header, and response footer across the inSite portal.</p>
             </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="assistantName">Assistant Name</Label>
-              <Input
-                id="assistantName"
-                placeholder="ON-PNT® Assistant"
-                data-testid="input-assistant-name"
-                {...appearanceForm.register("assistantName")}
-              />
-              {appearanceForm.formState.errors.assistantName && (
-                <p className="text-xs text-destructive">{appearanceForm.formState.errors.assistantName.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Displayed in the chat header and trigger button tooltip
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="welcomeMessage">Welcome Message</Label>
-              <Textarea
-                id="welcomeMessage"
-                placeholder="Ask me anything about your SharePoint documents."
-                rows={3}
-                data-testid="input-welcome-message"
-                className="resize-none"
-                {...appearanceForm.register("welcomeMessage")}
-              />
-              {appearanceForm.formState.errors.welcomeMessage && (
-                <p className="text-xs text-destructive">{appearanceForm.formState.errors.welcomeMessage.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Shown when the chat is opened with no prior messages
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="notFoundMessage">Not Found Message</Label>
-              <Textarea
-                id="notFoundMessage"
-                placeholder="I'm sorry, I couldn't find relevant information for your request..."
-                rows={3}
-                data-testid="input-not-found-message"
-                className="resize-none"
-                {...appearanceForm.register("notFoundMessage")}
-              />
-              {appearanceForm.formState.errors.notFoundMessage && (
-                <p className="text-xs text-destructive">{appearanceForm.formState.errors.notFoundMessage.message}</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Returned by the assistant when no relevant documents are found for a query
-              </p>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="customInstructions">Custom Instructions</Label>
-              <Textarea
-                id="customInstructions"
-                placeholder={`Describe how the assistant should behave. For example:\n- Always respond in a formal, professional tone\n- When citing documents, include the section or page number if available\n- This assistant serves the Facilities Management department\n- Prioritise safety-related documents when relevant\n- If asked about pricing, always note that figures may have changed`}
-                rows={8}
-                data-testid="input-custom-instructions"
-                className="resize-y font-mono text-xs"
-                {...appearanceForm.register("customInstructions")}
-              />
-              <p className="text-xs text-muted-foreground">
-                Shape the assistant's tone, focus, persona, and style. Applied to every conversation.
-                Any not-found or fallback response you write here will be automatically removed before reaching the AI. Use the <strong>Not Found Message</strong> field above — it is the sole source of truth for what the assistant says when an answer isn't in the documents.
-              </p>
-            </div>
-
-            {/* ── Formatting Preview ─────────────────────────────────────── */}
-            <div className="space-y-2" data-testid="formatting-preview-section">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                Formatting Preview
-              </Label>
-              <div className="rounded-lg border border-border bg-muted/30 p-3">
-                {hasPreview ? (
-                  <div className="flex gap-2 items-start">
-                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Bot className="w-3 h-3 text-primary-foreground" />
-                    </div>
-                    <div
-                      className="bg-white dark:bg-secondary border border-border rounded-lg rounded-bl-none p-3 text-sm leading-relaxed max-w-sm"
-                      style={previewBodyStyle ?? {}}
-                      data-testid="formatting-preview-bubble"
-                    >
-                      {previewPhrases.map((p, i) => (
-                        <p
-                          key={i}
-                          className="mb-1"
-                          dangerouslySetInnerHTML={{ __html: p.html }}
-                        />
-                      ))}
-                      <p>
-                        Here is the information you requested based on the available documents.
-                      </p>
-                    </div>
+            <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
+              <div className="space-y-6">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Organisation label</Label>
+                    <div className="flex h-11 items-center rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#596d82]">TECHNICAL ASSURANCE</div>
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic" data-testid="formatting-preview-empty">
-                    No special formatting detected — add a phrase like{" "}
-                    <code className="bg-muted px-1 rounded">"Hello!" in bold red text</code>{" "}
-                    or{" "}
-                    <code className="bg-muted px-1 rounded">Always respond in bold green</code>{" "}
-                    to see a live preview here.
-                  </p>
-                )}
-              </div>
-              <div className="mt-2 space-y-1.5">
-                <p className="text-xs font-medium text-muted-foreground">How formatting instructions work:</p>
-                <div className="space-y-1 text-xs text-muted-foreground">
-                  <div className="flex gap-2">
-                    <span className="text-primary font-bold shrink-0">①</span>
-                    <span>
-                      <strong>Styled prefix</strong> — wrap a phrase in quotes followed by a style:{" "}
-                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Always begin with "Thank you for your question!" in bold blue text</code>
-                    </span>
+                  <div className="space-y-2">
+                    <Label htmlFor="assistantName">Assistant name</Label>
+                    <Input id="assistantName" placeholder="ON-PNT® Assistant" data-testid="input-assistant-name" {...appearanceForm.register("assistantName")} className="h-11 bg-[#fbfcfd]" />
+                    {appearanceForm.formState.errors.assistantName && <p className="text-xs text-destructive">{appearanceForm.formState.errors.assistantName.message}</p>}
                   </div>
-                  <div className="flex gap-2">
-                    <span className="text-primary font-bold shrink-0">②</span>
-                    <span>
-                      <strong>Global body style</strong> — apply a colour or weight to all responses:{" "}
-                      <code className="bg-muted px-1 py-0.5 rounded text-[11px]">Always respond in bold green</code>
-                    </span>
+                </div>
+                <div className="space-y-2">
+                  <Label>Description <span className="float-right font-normal text-[#8090a3]">Shown beneath the assistant name</span></Label>
+                  <div className="min-h-[78px] rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 py-3 text-[13px] leading-5 text-[#596d82]">Find answers from your trusted portal documents, without leaving inSite.</div>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Footer attribution</Label>
+                    <div className="flex h-11 items-center rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#596d82]">Powered by inSite knowledge</div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Grounding statement</Label>
+                    <div className="flex h-11 items-center rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#596d82]">Answers are Technical Assurance specific</div>
                   </div>
                 </div>
               </div>
-            </div>
-
-          </div>
-
-          <div className="mt-6 rounded-xl border border-border bg-card p-6 space-y-5" data-testid="theme-launcher-section">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#188b6a]">Theme &amp; launcher</p>
-              <h2 className="mt-1 text-lg font-semibold text-[#102a43]">Match the portal experience</h2>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Choose the assistant mark, accent theme, launcher wording, placement, and shape.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Assistant icon</Label>
+              <div className="rounded-xl border border-[#d9e3e8] bg-[#f6faf8] p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-[#5c7b70]">Assistant icon</span>
+                  <span className="text-[15px] text-[#8aa399]">?</span>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {ASSISTANT_ICON_OPTIONS.map(({ value, label, Icon }) => {
                     const isSelected = appearanceForm.watch("assistantIcon") === value;
                     return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => appearanceForm.setValue("assistantIcon", value, { shouldDirty: true })}
-                        className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border px-3 py-3 text-xs font-medium transition-colors ${
-                          isSelected
-                            ? "border-[#188b6a] bg-[#edf8f4] text-[#126b52] ring-1 ring-[#188b6a]/20"
-                            : "border-border bg-white text-muted-foreground hover:border-[#a9c9bd] hover:bg-[#fbfefd]"
-                        }`}
-                        aria-pressed={isSelected}
-                        data-testid={`button-assistant-icon-${value}`}
-                      >
+                      <button key={value} type="button" onClick={() => appearanceForm.setValue("assistantIcon", value, { shouldDirty: true })} className={`flex h-12 items-center justify-center rounded-lg border transition ${isSelected ? "border-[#1e765c] bg-white text-[#1e765c] ring-2 ring-[#1e765c]/15" : "border-[#d6e2dc] bg-white/60 text-[#81978e] hover:border-[#9abaae]"}`} aria-label={`Assistant icon: ${label}`} aria-pressed={isSelected} data-testid={`button-assistant-icon-${value}`}>
                         <Icon className="h-5 w-5" />
-                        {label}
                       </button>
                     );
                   })}
                 </div>
+                <p className="mt-3 text-[11px] leading-5 text-[#718198]">This icon is used consistently in the expanded header, minimized long bar, and closed floating launcher.</p>
+                <div className="mt-6 rounded-lg bg-[#10263f] p-4 text-white">
+                  <div className="flex items-center gap-2"><PreviewIcon className="h-4 w-4 text-[#8bd541]" /><span className="text-[10px] font-bold tracking-[0.14em] text-[#afd8c5]">TECHNICAL ASSURANCE</span></div>
+                  <div className="mt-2 text-[14px] font-semibold">{appearanceForm.watch("assistantName") || "inSite Assistant"}</div>
+                  <p className="mt-1 text-[11px] leading-4 text-[#c3d0dc]">Find answers from your trusted portal documents, without leaving inSite.</p>
+                  <div className="mt-3 border-t border-white/15 pt-2 text-[10px] text-[#a9bac8]">Powered by inSite knowledge</div>
+                </div>
               </div>
+            </div>
+          </section>
 
-              <div className="space-y-2">
-                <Label>Accent theme</Label>
-                <div className="grid grid-cols-2 gap-2">
+          <section className="border-t border-[#e3e9ed] pt-9" data-testid="theme-launcher-section">
+            <div className="mb-6">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Theme &amp; launcher</p>
+              <h2 className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Keep every assistant state on-brand</h2>
+              <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">Choose the visual theme and launcher icon once. The selection is used in the expanded header, minimized long bar, and closed floating bubble.</p>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_.8fr]">
+              <div className="rounded-xl border border-[#dbe3e9] p-5">
+                <div className="text-[13px] font-semibold text-[#263c54]">Assistant theme</div>
+                <p className="mt-1 text-[11px] leading-5 text-[#8290a0]">Theme colors are applied to the assistant header, actions, focus states, and launcher accents.</p>
+                <div className="mt-4 grid gap-3">
                   {Object.entries(THEME_OPTIONS).map(([value, theme]) => {
                     const isSelected = appearanceForm.watch("theme") === value;
                     return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => appearanceForm.setValue("theme", value, { shouldDirty: true })}
-                        className={`flex items-center gap-3 rounded-lg border px-3 py-3 text-left text-xs font-medium transition-colors ${
-                          isSelected ? "border-[#188b6a] ring-1 ring-[#188b6a]/20" : "border-border hover:bg-muted/30"
-                        }`}
-                        aria-pressed={isSelected}
-                        data-testid={`button-theme-${value}`}
-                      >
-                        <span className="h-7 w-7 rounded-full border-4 border-white shadow-sm" style={{ backgroundColor: theme.primary }} />
-                        <span>{theme.label}</span>
+                      <button key={value} type="button" onClick={() => appearanceForm.setValue("theme", value, { shouldDirty: true })} className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${isSelected ? "border-[#1e765c] bg-[#f4faf7] ring-2 ring-[#1e765c]/10" : "border-[#dbe3e9] bg-[#fbfcfd] hover:border-[#a9c2b6]"}`} aria-pressed={isSelected} data-testid={`button-theme-${value}`}>
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: value === "teal" ? "#10263f" : theme.primary }}><span className="h-3.5 w-3.5 rounded-md" style={{ backgroundColor: theme.primary }} /></span>
+                        <span className="min-w-0 flex-1"><span className="block text-[12px] font-semibold text-[#344a60]">{theme.label}</span><span className="mt-0.5 block text-[10px] text-[#8290a0]">{value === "teal" ? "Current portal direction" : "Assistant accent theme"}</span></span>
+                        {isSelected && <span className="text-[#1e765c]">✓</span>}
                       </button>
                     );
                   })}
                 </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="space-y-1">
-                <Label htmlFor="launcherLabel">Launcher label</Label>
-                <Input
-                  id="launcherLabel"
-                  maxLength={40}
-                  placeholder="Ask inSite"
-                  {...appearanceForm.register("launcherLabel")}
-                  data-testid="input-launcher-label"
-                />
-                <p className="text-xs text-muted-foreground">Shown when the pill launcher is selected.</p>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="launcherStyle">Launcher style</Label>
-                <select
-                  id="launcherStyle"
-                  {...appearanceForm.register("launcherStyle")}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                  data-testid="select-launcher-style"
-                >
-                  <option value="bubble">Icon bubble</option>
-                  <option value="pill">Icon with label</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="launcherPosition">Screen position</Label>
-                <select
-                  id="launcherPosition"
-                  {...appearanceForm.register("launcherPosition")}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm outline-none focus:ring-1 focus:ring-ring"
-                  data-testid="select-launcher-position"
-                >
-                  <option value="bottom-right">Bottom right</option>
-                  <option value="bottom-left">Bottom left</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-[#dbe7eb] bg-[#edf3f6]" data-testid="launcher-preview">
-              <div className="flex items-center justify-between border-b border-[#dbe7eb] bg-white px-4 py-3">
-                <div>
-                  <p className="text-xs font-semibold text-[#102a43]">Live launcher preview</p>
-                  <p className="text-[10px] text-muted-foreground">Updates before you save</p>
+              <div className="rounded-xl border border-[#dbe3e9] bg-[#f8fafb] p-5">
+                <div className="text-[11px] font-bold uppercase tracking-[0.13em] text-[#617589]">Launcher preview</div>
+                <div className="mt-5 flex items-center gap-3 rounded-[15px] border border-[#e2e6eb] bg-white px-3 py-3 shadow-sm">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]" style={{ backgroundColor: selectedTheme.primary }}><PreviewIcon className="h-[17px] w-[17px] text-white" /></span>
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#1e2b3b]">{appearanceForm.watch("assistantName") || "inSite Assistant"}</span>
+                  <span className="text-[11px] text-[#52667b]">↗</span><span className="text-[14px] text-[#263443]">×</span>
                 </div>
-                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                  {launcherPosition === "bottom-left" ? "Bottom left" : "Bottom right"}
-                </span>
-              </div>
-              <div className={`flex min-h-44 items-end p-5 ${launcherPosition === "bottom-left" ? "justify-start" : "justify-end"}`}>
-                <div className="space-y-3">
-                  <div className="w-64 overflow-hidden rounded-xl bg-white shadow-lg ring-1 ring-black/5">
-                    <div className="flex items-center gap-2 px-3 py-2.5 text-white" style={{ backgroundColor: selectedTheme.primary }}>
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
-                        <PreviewIcon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <p className="text-xs font-semibold">{appearanceForm.watch("assistantName") || "inSite Assistant"}</p>
-                        <p className="text-[9px] text-white/75">Ready to help</p>
-                      </div>
-                    </div>
-                    <div className="p-3 text-[10px]" style={{ backgroundColor: selectedTheme.surface, color: selectedTheme.text }}>
-                      {appearanceForm.watch("welcomeMessage") || "Ask me anything about your portal documents."}
-                    </div>
-                  </div>
-                  <div className={`flex ${launcherPosition === "bottom-left" ? "justify-start" : "justify-end"}`}>
-                    <div
-                      className={`flex items-center justify-center gap-2 text-white shadow-lg ${
-                        launcherStyle === "pill" ? "min-h-11 rounded-full px-4" : "h-12 w-12 rounded-full"
-                      }`}
-                      style={{ backgroundColor: selectedTheme.primary }}
-                    >
-                      <PreviewIcon className="h-5 w-5" />
-                      {launcherStyle === "pill" && <span className="text-xs font-semibold">{launcherLabel}</span>}
-                    </div>
-                  </div>
-                </div>
+                <p className="mt-4 text-[11px] leading-5 text-[#718198]">This preview represents the minimized long bar. The same icon and accent color are used for the closed floating button.</p>
               </div>
             </div>
-          </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              <div className="space-y-2"><Label htmlFor="launcherLabel">Launcher label</Label><Input id="launcherLabel" maxLength={40} placeholder="Ask inSite" {...appearanceForm.register("launcherLabel")} data-testid="input-launcher-label" className="h-11 bg-[#fbfcfd]" /><p className="text-[11px] text-[#718198]">Shown when the pill launcher is selected.</p></div>
+              <div className="space-y-2"><Label htmlFor="launcherStyle">Launcher style</Label><select id="launcherStyle" {...appearanceForm.register("launcherStyle")} className="flex h-11 w-full rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#27394f] outline-none" data-testid="select-launcher-style"><option value="bubble">Icon bubble</option><option value="pill">Icon with label</option></select></div>
+              <div className="space-y-2"><Label htmlFor="launcherPosition">Screen position</Label><select id="launcherPosition" {...appearanceForm.register("launcherPosition")} className="flex h-11 w-full rounded-lg border border-[#ced8e2] bg-[#fbfcfd] px-3.5 text-[13px] text-[#27394f] outline-none" data-testid="select-launcher-position"><option value="bottom-right">Bottom right</option><option value="bottom-left">Bottom left</option></select></div>
+            </div>
+          </section>
+
+          <section className="border-t border-[#e3e9ed] pt-9" aria-labelledby="widget-appearance-heading">
+            <div className="mb-6">
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Widget appearance</p>
+              <h2 id="widget-appearance-heading" className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Shape the conversation experience</h2>
+              <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">These messages appear in the widget at key moments and provide the assistant with its response context.</p>
+            </div>
+            <div className="grid gap-5 lg:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="welcomeMessage">Welcome message <span className="float-right font-normal text-[#8090a3]">Shown when a conversation starts</span></Label><Textarea id="welcomeMessage" placeholder="Ask me anything about your SharePoint documents." rows={3} data-testid="input-welcome-message" className="resize-none bg-[#fbfcfd]" {...appearanceForm.register("welcomeMessage")} />{appearanceForm.formState.errors.welcomeMessage && <p className="text-xs text-destructive">{appearanceForm.formState.errors.welcomeMessage.message}</p>}</div>
+              <div className="space-y-2"><Label htmlFor="notFoundMessage">Not found message <span className="float-right font-normal text-[#8090a3]">Used when no relevant documents are found</span></Label><Textarea id="notFoundMessage" placeholder="I'm sorry, I couldn't find relevant information for your request..." rows={3} data-testid="input-not-found-message" className="resize-none bg-[#fbfcfd]" {...appearanceForm.register("notFoundMessage")} />{appearanceForm.formState.errors.notFoundMessage && <p className="text-xs text-destructive">{appearanceForm.formState.errors.notFoundMessage.message}</p>}</div>
+            </div>
+            <div className="mt-5 space-y-2">
+              <Label htmlFor="customInstructions">Custom instructions</Label>
+              <Textarea id="customInstructions" placeholder={`Describe how the assistant should behave. For example:\n- Always respond in a formal, professional tone\n- When citing documents, include the section or page number if available\n- This assistant serves the Facilities Management department\n- Prioritise safety-related documents when relevant\n- If asked about pricing, always note that figures may have changed`} rows={7} data-testid="input-custom-instructions" className="resize-none bg-[#fbfcfd] font-mono text-xs" {...appearanceForm.register("customInstructions")} />
+              <p className="text-[11px] leading-5 text-[#718198]">Shape the assistant&apos;s tone, focus, persona, and style. Applied to every conversation. Any not-found or fallback response you write here will be automatically removed before reaching the AI. Use the <strong className="font-semibold text-[#596d82]">Not Found Message</strong> field above — it is the sole source of truth for what the assistant says when an answer isn&apos;t in the documents.</p>
+            </div>
+            <div className="mt-6 rounded-xl border border-[#dbe3e9] bg-[#f8fafb] p-5" data-testid="formatting-preview-section">
+              <div className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-[#617589]"><Bot className="h-[15px] w-[15px]" /> Formatting preview</div>
+              <div className="max-w-[510px] rounded-xl border border-[#d9e2e8] bg-white px-5 py-4 shadow-sm" style={previewBodyStyle ?? {}} data-testid={hasPreview ? "formatting-preview-bubble" : "formatting-preview-empty"}>
+                {hasPreview ? previewPhrases.map((p, i) => <p key={i} className="mb-1 text-[13px] leading-5" dangerouslySetInnerHTML={{ __html: p.html }} />) : <p className="text-[12px] italic text-[#718198]">No special formatting detected — add a phrase like <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">&quot;Hello!&quot; in bold red text</code> to see a live preview here.</p>}
+                <p className="text-[13px] leading-5" style={previewBodyStyle ?? { color: "#394c61" }}>Here is the information you requested based on the available Technical Assurance documents.</p>
+              </div>
+              <div className="mt-4 grid gap-2 text-[11px] leading-5 text-[#718198]">
+                <p><span className="mr-2 font-bold text-[#1e765c]">01</span><strong className="font-semibold text-[#536b7d]">Styled prefix</strong> — wrap a phrase in quotes followed by a style: <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">Always begin with &quot;Thank you for your question!&quot; in bold blue text</code></p>
+                <p><span className="mr-2 font-bold text-[#1e765c]">02</span><strong className="font-semibold text-[#536b7d]">Global body style</strong> — apply a colour or weight to all responses: <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">Always respond in bold green</code></p>
+              </div>
+            </div>
+            <Button type="submit" className="mt-6 bg-[#1e765c] text-[12px] font-semibold text-white hover:bg-[#176049]" data-testid="button-save-appearance"><Save className="mr-2 h-4 w-4" /> Save appearance</Button>
+            <div className="mt-5 flex items-start gap-3 rounded-lg border border-[#dbe8e1] bg-[#f5faf7] px-4 py-3.5 text-[11px] leading-5 text-[#557568]"><span className="mt-0.5 text-[#1e765c]">ⓘ</span><span><strong className="font-semibold text-[#315f50]">Preview note:</strong> Changes are applied to the launcher preview after saving. Connection, response, and logging controls remain in their own tabs.</span></div>
+          </section>
         </form>
         </div>
 
         {/* ── Knowledge Sources ───────────────────────────────────────────── */}
         <div
+          id="settings-panel-knowledge-sources"
           className={activeTab === "knowledge-sources" ? "contents" : "hidden"}
           role="tabpanel"
+          aria-labelledby="settings-tab-knowledge-sources"
           aria-label="Knowledge Sources settings"
           data-testid="settings-panel-knowledge-sources"
         >
@@ -1364,8 +1216,10 @@ export default function Settings() {
 
         {/* ── AI Model Parameters ─────────────────────────────────────────── */}
         <div
+          id="settings-panel-chat-behavior"
           className={activeTab === "chat-behavior" ? "block" : "hidden"}
           role="tabpanel"
+          aria-labelledby="settings-tab-chat-behavior"
           aria-label="Chat Behavior settings"
           data-testid="settings-panel-chat-behavior"
         >
@@ -1465,8 +1319,10 @@ export default function Settings() {
 
         {/* ── Chat Logging ────────────────────────────────────────────────── */}
         <div
+          id="settings-panel-logging-exports"
           className={activeTab === "logging-exports" ? "block" : "hidden"}
           role="tabpanel"
+          aria-labelledby="settings-tab-logging-exports"
           aria-label="Logging and Exports settings"
           data-testid="settings-panel-logging-exports"
         >
@@ -1533,7 +1389,10 @@ export default function Settings() {
 
         {/* ── SharePoint Connection ───────────────────────────────────────── */}
         <div
+          id="settings-panel-sharepoint"
           className={activeTab === "knowledge-sources" ? "contents" : "hidden"}
+          role="region"
+          aria-labelledby="settings-tab-knowledge-sources"
           aria-label="SharePoint connection settings"
           data-testid="settings-panel-sharepoint"
         >
