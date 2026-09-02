@@ -81,6 +81,7 @@ export function ChatWidget() {
   const [isPending, setIsPending] = useState(false);
   const [isError, setIsError] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState("");
+  const [chatResetKey, setChatResetKey] = useState(0);
 
   // Read SharePoint user from URL param injected by the embed script / SPFx customizer.
   // Lazy initializer runs once on mount — no effect needed.
@@ -165,6 +166,14 @@ export function ChatWidget() {
   const handleMaximize = () => {
     setIsMinimized(false);
     notifyParent("chatbot:open");
+  };
+
+  const handleSourceChange = (nextSourceId) => {
+    if (String(nextSourceId) === String(selectedSourceId)) return;
+    setSelectedSourceId(nextSourceId);
+    setMessages([]);
+    setIsError(false);
+    setChatResetKey((current) => current + 1);
   };
 
   const handleSend = async (message) => {
@@ -365,7 +374,8 @@ export function ChatWidget() {
                     responseStyle={responseStyle}
                     knowledgeSources={knowledgeSources}
                     selectedSourceId={selectedSourceId}
-                    onSourceChange={setSelectedSourceId}
+                     onSourceChange={handleSourceChange}
+                     resetInputKey={chatResetKey}
                   />
                 </div>
               </div>

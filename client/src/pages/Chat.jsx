@@ -27,6 +27,7 @@ export default function Chat({
   knowledgeSources = [],
   selectedSourceId = "",
   onSourceChange,
+  resetInputKey = 0,
 }) {
 
   // Convert responseStyle object → a CSS style object applied to assistant message containers.
@@ -45,6 +46,10 @@ export default function Chat({
     (source) => String(source.id) === String(selectedSourceId),
   );
   const sourcePrompt = getSourcePrompt(selectedSource, welcomeMessage);
+
+  useEffect(() => {
+    setInput("");
+  }, [resetInputKey]);
 
   useEffect(() => {
     if (scrollRef.current) {

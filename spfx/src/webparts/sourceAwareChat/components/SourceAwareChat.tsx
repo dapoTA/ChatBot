@@ -95,6 +95,14 @@ const SourceAwareChat: React.FC<ISourceAwareChatProps> = ({
   );
   const sourcePrompt = getSourcePrompt(selectedSource);
 
+  const handleSourceChange = (nextSourceId: string): void => {
+    if (nextSourceId === selectedSourceId) return;
+    setSelectedSourceId(nextSourceId);
+    setMessages([]);
+    setQuestion('');
+    setError('');
+  };
+
   const submitQuestion = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     const message = question.trim();
@@ -171,7 +179,7 @@ const SourceAwareChat: React.FC<ISourceAwareChatProps> = ({
           <select
             id="inSite-source"
             value={selectedSourceId}
-            onChange={(event) => setSelectedSourceId(event.target.value)}
+            onChange={(event) => handleSourceChange(event.target.value)}
             disabled={isLoadingSources || isSending || sources.length === 0}
           >
             {isLoadingSources && <option value="">Loading sources…</option>}
