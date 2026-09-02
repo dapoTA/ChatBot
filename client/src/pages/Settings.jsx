@@ -855,18 +855,18 @@ export default function Settings() {
                   )}
                 </div>
               </div>
-              <div className="overflow-hidden rounded-xl border border-[#dbe3e9] bg-[#eef5f8]">
+              <div className="flex min-h-[338px] flex-col overflow-hidden rounded-xl border border-[#dbe3e9] bg-[#eef5f8]">
                 <div className="flex items-start justify-between border-b border-[#dbe3e9] bg-white px-4 py-3">
                   <div><div className="text-[12px] font-semibold text-[#344a60]">Live launcher preview</div><div className="mt-0.5 text-[10px] text-[#8290a0]">Updates before you save</div></div>
                   <span className="pt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#8290a0]">{appearanceForm.watch("launcherPosition") === "bottom-left" ? "Bottom left" : "Bottom right"}</span>
                 </div>
-                <div className={`relative min-h-[290px] p-5 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "text-left" : "text-right"}`}>
-                  <div className={`absolute bottom-14 flex max-w-[calc(100%-2.5rem)] items-center gap-2 rounded-xl border bg-white px-3 py-2.5 text-left shadow-[0_8px_20px_rgba(44,67,86,.12)] ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`} style={{ borderColor: `${selectedTheme.primary}44` }}>
+                <div className={`relative min-h-[290px] flex-1 p-5 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "text-left" : "text-right"}`}>
+                  <div className={`absolute bottom-12 flex max-w-[calc(100%-2.5rem)] items-center gap-2 rounded-xl border bg-white px-3 py-2.5 text-left shadow-[0_8px_20px_rgba(44,67,86,.12)] ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`} style={{ borderColor: `${selectedTheme.primary}44` }}>
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px]" style={{ backgroundColor: selectedTheme.primary, color: selectedTheme.foreground }}><PreviewIcon className="h-[17px] w-[17px]" /></span>
                     <span className="min-w-0"><span className="block truncate text-[12px] font-semibold text-[#25364c]">{appearanceForm.watch("launcherStyle") === "pill" ? appearanceForm.watch("launcherLabel") || "Ask inSite" : appearanceForm.watch("assistantName") || "inSite Assistant"}</span><span className="block text-[10px] text-[#8290a0]">Ready to help!</span></span>
                     <span className="ml-2 text-[12px] text-[#52667b]">↗</span><span className="text-[15px] text-[#263443]">×</span>
                   </div>
-                  <div className={`absolute bottom-3 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`}>
+                  <div className={`absolute bottom-1 ${appearanceForm.watch("launcherPosition") === "bottom-left" ? "left-5" : "right-5"}`}>
                     <span className="flex h-11 w-11 items-center justify-center rounded-full shadow-[0_5px_14px_rgba(38,74,62,.22)]" style={{ backgroundColor: selectedTheme.primary, color: selectedTheme.foreground }}><PreviewIcon className="h-5 w-5" /></span>
                   </div>
                 </div>
