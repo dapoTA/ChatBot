@@ -11,6 +11,7 @@ interface IKnowledgeSource {
   id: number;
   name: string;
   description: string;
+  welcomeMessage: string;
   isPortalWide: boolean;
 }
 
@@ -22,6 +23,7 @@ interface IChatMessage {
 
 function getSourcePrompt(source?: IKnowledgeSource): string {
   if (!source) return 'Ask me anything about the full portal.';
+  if (source.welcomeMessage && source.welcomeMessage.trim()) return source.welcomeMessage.trim();
   if (source.isPortalWide) return 'Ask me anything about the full portal.';
   return `Ask me anything ${source.name} related.`;
 }

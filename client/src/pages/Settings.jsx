@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,11 +43,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // ─── Appearance form ────────────────────────────────────────────────────────
 
-const appearanceSchema = insertAppSettingsSchema.extend({
+const appearanceSchema = insertAppSettingsSchema.omit({
+  welcomeMessage: true,
+  notFoundMessage: true,
+  customInstructions: true,
+}).extend({
   assistantName: z.string().min(1, "Assistant name is required"),
-  welcomeMessage: z.string().min(1, "Welcome message is required"),
-  notFoundMessage: z.string().min(1, "Not-found message is required"),
-  customInstructions: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {
   if (data.theme === "custom" && !/^#[0-9a-fA-F]{6}$/.test(data.customThemeColor ?? "")) {
     ctx.addIssue({
@@ -99,6 +100,8 @@ const EMPTY_SOURCE = {
   libraryName: "",
   sharepointMode: "online",
   description: "",
+  welcomeMessage: "",
+  notFoundMessage: "",
   instructions: "",
   smeTeam: "",
   contactMethod: "",
@@ -107,6 +110,39 @@ const EMPTY_SOURCE = {
   enabled: true,
   isPortalWide: false,
 };
+
+function SourceInstructionPreview({ instructions }) {
+  const value = instructions ?? "";
+  const previewPhrases = extractStyledPhrases(value);
+  const previewBodyStyle = extractGlobalResponseStyle(value);
+  const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
+
+  return (
+    <div className="rounded-lg border border-[#d9e2e8] bg-white px-4 py-3" data-testid="source-formatting-preview">
+      <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.13em] text-[#617589]">
+        Response formatting preview
+      </p>
+      {hasPreview ? (
+        <div style={previewBodyStyle ?? {}}>
+          {previewPhrases.map((phrase, index) => (
+            <p
+              key={index}
+              className="mb-1 text-[12px] leading-5"
+              dangerouslySetInnerHTML={{ __html: phrase.html }}
+            />
+          ))}
+          <p className="text-[12px] leading-5">
+            Here is the information requested from this knowledge source.
+          </p>
+        </div>
+      ) : (
+        <p className="text-[11px] italic leading-5 text-[#718198]">
+          Add formatting guidance to this source's instructions to preview it here.
+        </p>
+      )}
+    </div>
+  );
+}
 
 const ASSISTANT_ICON_OPTIONS = [
   { value: "message-circle", label: "Chat", Icon: MessageSquare },
@@ -199,6 +235,8 @@ export default function Settings() {
       ...source,
       libraryName: source.libraryName ?? "",
       description: source.description ?? "",
+      welcomeMessage: source.welcomeMessage ?? "",
+      notFoundMessage: source.notFoundMessage ?? "",
       instructions: source.instructions ?? "",
       smeTeam: source.smeTeam ?? "",
       contactMethod: source.contactMethod ?? "",
@@ -297,6 +335,8 @@ export default function Settings() {
         libraryName: sourceDraft.isPortalWide ? null : libraryName,
         sharepointMode: sourceDraft.sharepointMode,
         description: sourceDraft.description.trim(),
+        welcomeMessage: sourceDraft.welcomeMessage.trim(),
+        notFoundMessage: sourceDraft.notFoundMessage.trim(),
         instructions: sourceDraft.instructions.trim(),
         smeTeam: sourceDraft.smeTeam.trim(),
         contactMethod: sourceDraft.contactMethod.trim(),
@@ -364,9 +404,6 @@ export default function Settings() {
     resolver: zodResolver(appearanceSchema),
     defaultValues: {
       assistantName: "ON-PNT® Assistant",
-      welcomeMessage: "Ask me anything about your SharePoint documents.",
-      notFoundMessage: "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.",
-      customInstructions: "",
       assistantIcon: "message-circle",
       theme: "teal",
       customThemeColor: null,
@@ -384,9 +421,6 @@ export default function Settings() {
       appearanceLoaded.current = true;
       appearanceForm.reset({
         assistantName: appSettingsData.assistantName,
-        welcomeMessage: appSettingsData.welcomeMessage,
-        notFoundMessage: appSettingsData.notFoundMessage,
-        customInstructions: appSettingsData.customInstructions ?? "",
         assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
         theme: appSettingsData.theme ?? "teal",
         customThemeColor: appSettingsData.customThemeColor ?? null,
@@ -405,9 +439,6 @@ export default function Settings() {
     onSuccess: (saved) => {
       appearanceForm.reset({
         assistantName: saved.assistantName,
-        welcomeMessage: saved.welcomeMessage,
-        notFoundMessage: saved.notFoundMessage,
-        customInstructions: saved.customInstructions ?? "",
         assistantIcon: saved.assistantIcon ?? "message-circle",
         theme: saved.theme ?? "teal",
         customThemeColor: saved.customThemeColor ?? null,
@@ -538,11 +569,6 @@ export default function Settings() {
     },
   });
 
-  // ─── Formatting preview (computed live from textarea) ─────────────────────
-  const instructionsValue = appearanceForm.watch("customInstructions") ?? "";
-  const previewPhrases = useMemo(() => extractStyledPhrases(instructionsValue), [instructionsValue]);
-  const previewBodyStyle = useMemo(() => extractGlobalResponseStyle(instructionsValue), [instructionsValue]);
-  const hasPreview = previewPhrases.length > 0 || previewBodyStyle !== null;
   const selectedThemeName = appearanceForm.watch("theme");
   const customThemeColor = appearanceForm.watch("customThemeColor") ?? "";
   const selectedThemeBase = THEME_OPTIONS[selectedThemeName] ?? THEME_OPTIONS.teal;
@@ -587,9 +613,6 @@ export default function Settings() {
     if (activeTab === "general" && appSettingsData) {
       appearanceForm.reset({
         assistantName: appSettingsData.assistantName,
-        welcomeMessage: appSettingsData.welcomeMessage,
-        notFoundMessage: appSettingsData.notFoundMessage,
-        customInstructions: appSettingsData.customInstructions ?? "",
         assistantIcon: appSettingsData.assistantIcon ?? "message-circle",
         theme: appSettingsData.theme ?? "teal",
         customThemeColor: appSettingsData.customThemeColor ?? null,
@@ -881,29 +904,25 @@ export default function Settings() {
 
           <section className="border-t border-[#e3e9ed] pt-9" aria-labelledby="widget-appearance-heading">
             <div className="mb-6">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Widget appearance</p>
-              <h2 id="widget-appearance-heading" className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Shape the conversation experience</h2>
-              <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">These messages appear in the widget at key moments and provide the assistant with its response context.</p>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#1e765c]">Conversation guidance</p>
+              <h2 id="widget-appearance-heading" className="text-[19px] font-semibold tracking-[-0.02em] text-[#1c3048]">Managed by knowledge source</h2>
+              <p className="mt-1.5 text-[12px] leading-5 text-[#718198]">
+                Welcome messages, not-found responses, and assistant instructions now belong to each knowledge source so the selected source controls the conversation.
+              </p>
             </div>
-            <div className="grid gap-5 lg:grid-cols-2">
-              <div className="space-y-2"><Label htmlFor="welcomeMessage">Welcome message <span className="float-right font-normal text-[#8090a3]">Shown when a conversation starts</span></Label><Textarea id="welcomeMessage" placeholder="Ask me anything about your SharePoint documents." rows={3} data-testid="input-welcome-message" className="resize-none bg-[#fbfcfd]" {...appearanceForm.register("welcomeMessage")} />{appearanceForm.formState.errors.welcomeMessage && <p className="text-xs text-destructive">{appearanceForm.formState.errors.welcomeMessage.message}</p>}</div>
-              <div className="space-y-2"><Label htmlFor="notFoundMessage">Not found message <span className="float-right font-normal text-[#8090a3]">Used when no relevant documents are found</span></Label><Textarea id="notFoundMessage" placeholder="I'm sorry, I couldn't find relevant information for your request..." rows={3} data-testid="input-not-found-message" className="resize-none bg-[#fbfcfd]" {...appearanceForm.register("notFoundMessage")} />{appearanceForm.formState.errors.notFoundMessage && <p className="text-xs text-destructive">{appearanceForm.formState.errors.notFoundMessage.message}</p>}</div>
-            </div>
-            <div className="mt-5 space-y-2">
-              <Label htmlFor="customInstructions">Custom instructions</Label>
-              <Textarea id="customInstructions" placeholder={`Describe how the assistant should behave. For example:\n- Always respond in a formal, professional tone\n- When citing documents, include the section or page number if available\n- This assistant serves the Facilities Management department\n- Prioritise safety-related documents when relevant\n- If asked about pricing, always note that figures may have changed`} rows={7} data-testid="input-custom-instructions" className="resize-none bg-[#fbfcfd] font-mono text-xs" {...appearanceForm.register("customInstructions")} />
-              <p className="text-[11px] leading-5 text-[#718198]">Shape the assistant&apos;s tone, focus, persona, and style. Applied to every conversation. Any not-found or fallback response you write here will be automatically removed before reaching the AI. Use the <strong className="font-semibold text-[#596d82]">Not Found Message</strong> field above — it is the sole source of truth for what the assistant says when an answer isn&apos;t in the documents.</p>
-            </div>
-            <div className="mt-6 rounded-xl border border-[#dbe3e9] bg-[#f8fafb] p-5" data-testid="formatting-preview-section">
-              <div className="mb-4 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-[#617589]"><Bot className="h-[15px] w-[15px]" /> Formatting preview</div>
-              <div className="max-w-[510px] rounded-xl border border-[#d9e2e8] bg-white px-5 py-4 shadow-sm" style={previewBodyStyle ?? {}} data-testid={hasPreview ? "formatting-preview-bubble" : "formatting-preview-empty"}>
-                {hasPreview ? previewPhrases.map((p, i) => <p key={i} className="mb-1 text-[13px] leading-5" dangerouslySetInnerHTML={{ __html: p.html }} />) : <p className="text-[12px] italic text-[#718198]">No special formatting detected — add a phrase like <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">&quot;Hello!&quot; in bold red text</code> to see a live preview here.</p>}
-                <p className="text-[13px] leading-5" style={previewBodyStyle ?? { color: "#394c61" }}>Here is the information you requested based on the available Technical Assurance documents.</p>
-              </div>
-              <div className="mt-4 grid gap-2 text-[11px] leading-5 text-[#718198]">
-                <p><span className="mr-2 font-bold text-[#1e765c]">01</span><strong className="font-semibold text-[#536b7d]">Styled prefix</strong> — wrap a phrase in quotes followed by a style: <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">Always begin with &quot;Thank you for your question!&quot; in bold blue text</code></p>
-                <p><span className="mr-2 font-bold text-[#1e765c]">02</span><strong className="font-semibold text-[#536b7d]">Global body style</strong> — apply a colour or weight to all responses: <code className="rounded bg-[#eef1f3] px-1 font-mono text-[10px]">Always respond in bold green</code></p>
-              </div>
+            <div className="rounded-xl border border-[#dbe8e1] bg-[#f5faf7] px-5 py-4 text-[12px] leading-5 text-[#557568]">
+              <p>
+                Open <strong className="font-semibold text-[#315f50]">Knowledge Sources</strong>, expand PTO, HR, Company Policies, or All Portal Sources, and configure that source's messages and instructions.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3 border-[#b9d3c7] bg-white text-[#1e765c] hover:bg-[#edf8f4]"
+                onClick={() => setActiveTab("knowledge-sources")}
+                data-testid="button-open-source-guidance"
+              >
+                Configure knowledge sources
+              </Button>
             </div>
             <Button type="submit" className="mt-6 bg-[#1e765c] text-[12px] font-semibold text-white hover:bg-[#176049]" data-testid="button-save-appearance"><Save className="mr-2 h-4 w-4" /> Save appearance</Button>
             <div className="mt-5 flex items-start gap-3 rounded-lg border border-[#dbe8e1] bg-[#f5faf7] px-4 py-3.5 text-[11px] leading-5 text-[#557568]"><span className="mt-0.5 text-[#1e765c]">ⓘ</span><span><strong className="font-semibold text-[#315f50]">Preview note:</strong> Changes are applied to the launcher preview after saving. Connection, response, and logging controls remain in their own tabs.</span></div>
@@ -1126,6 +1145,37 @@ export default function Settings() {
                           </p>
                         </div>
 
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label htmlFor={`source-welcome-${source.id}`}>Welcome Message</Label>
+                            <Textarea
+                              id={`source-welcome-${source.id}`}
+                              value={sourceDraft.welcomeMessage}
+                              onChange={(event) => updateSourceDraft("welcomeMessage", event.target.value)}
+                              placeholder={source.isPortalWide
+                                ? "Ask me anything about the full portal."
+                                : `Ask me anything ${source.name} related.`}
+                              rows={3}
+                              className="resize-y"
+                              data-testid={`input-source-welcome-${source.id}`}
+                            />
+                            <p className="text-xs text-muted-foreground">Shown when this source is selected and the conversation is empty.</p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label htmlFor={`source-not-found-${source.id}`}>Not Found Message</Label>
+                            <Textarea
+                              id={`source-not-found-${source.id}`}
+                              value={sourceDraft.notFoundMessage}
+                              onChange={(event) => updateSourceDraft("notFoundMessage", event.target.value)}
+                              placeholder={`I couldn't find relevant information in ${source.name}.`}
+                              rows={3}
+                              className="resize-y"
+                              data-testid={`input-source-not-found-${source.id}`}
+                            />
+                            <p className="text-xs text-muted-foreground">Used only when this selected source cannot answer.</p>
+                          </div>
+                        </div>
+
                         <div className="space-y-1">
                           <Label htmlFor={`source-instructions-${source.id}`}>
                             {source.isPortalWide ? "Portal-wide Instructions" : "Instructions for This Source"}
@@ -1142,9 +1192,10 @@ export default function Settings() {
                             data-testid={`input-source-instructions-${source.id}`}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Global Custom Instructions are added automatically. Only this source's guidance is added here.
+                            Only this source's guidance is added when it is selected.
                           </p>
                         </div>
+                        <SourceInstructionPreview instructions={sourceDraft.instructions} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-1">
@@ -1284,6 +1335,35 @@ export default function Settings() {
                 <p className="text-xs text-muted-foreground">Helper text only; it is not interpreted as an AI instruction.</p>
               </div>
 
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-welcome">Welcome Message</Label>
+                  <Textarea
+                    id="new-source-welcome"
+                    value={sourceDraft.welcomeMessage}
+                    onChange={(event) => updateSourceDraft("welcomeMessage", event.target.value)}
+                    placeholder={`Ask me anything ${sourceDraft.name || "about this source"} related.`}
+                    rows={3}
+                    className="resize-y"
+                    data-testid="input-new-source-welcome"
+                  />
+                  <p className="text-xs text-muted-foreground">Shown when this source is selected and the conversation is empty.</p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-not-found">Not Found Message</Label>
+                  <Textarea
+                    id="new-source-not-found"
+                    value={sourceDraft.notFoundMessage}
+                    onChange={(event) => updateSourceDraft("notFoundMessage", event.target.value)}
+                    placeholder="I couldn't find relevant information in this source."
+                    rows={3}
+                    className="resize-y"
+                    data-testid="input-new-source-not-found"
+                  />
+                  <p className="text-xs text-muted-foreground">Used only when this selected source cannot answer.</p>
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <Label htmlFor="new-source-instructions">Instructions for This Source</Label>
                 <Textarea
@@ -1295,7 +1375,9 @@ export default function Settings() {
                   className="resize-y font-mono text-xs"
                   data-testid="input-new-source-instructions"
                 />
+                <p className="text-xs text-muted-foreground">Only this source's guidance is added when it is selected.</p>
               </div>
+              <SourceInstructionPreview instructions={sourceDraft.instructions} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">

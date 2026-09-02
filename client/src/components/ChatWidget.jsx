@@ -116,8 +116,15 @@ export function ChatWidget() {
   }, [knowledgeSources, selectedSourceId]);
 
   const assistantName = settings?.assistantName || DEFAULTS.assistantName;
-  const welcomeMessage = settings?.welcomeMessage || DEFAULTS.welcomeMessage;
-  const responseStyle = settings?.responseStyle || null;
+  const selectedSource = knowledgeSources.find(
+    (source) => String(source.id) === String(selectedSourceId),
+  );
+  const welcomeMessage = selectedSource?.welcomeMessage
+    || settings?.welcomeMessage
+    || DEFAULTS.welcomeMessage;
+  const responseStyle = selectedSource?.responseStyle
+    ?? (selectedSource?.isPortalWide ? settings?.responseStyle : null)
+    ?? null;
   const assistantIcon = settings?.assistantIcon || DEFAULTS.assistantIcon;
   const themeName = settings?.theme || DEFAULTS.theme;
   const customThemeColor = settings?.customThemeColor || "";

@@ -79,6 +79,8 @@ function mapKnowledgeSource(row) {
     libraryName: row.library_name,
     sharepointMode: row.sharepoint_mode ?? "inherit",
     description: row.description ?? "",
+    welcomeMessage: row.welcome_message ?? "",
+    notFoundMessage: row.not_found_message ?? "",
     instructions: row.instructions ?? "",
     smeTeam: row.sme_team ?? "",
     contactMethod: row.contact_method ?? "",
@@ -359,7 +361,7 @@ export class DatabaseStorage {
     const pool = await getPool();
     const result = await pool.request().query(`
       SELECT id, name, library_name, sharepoint_mode, description, instructions, sme_team,
-             contact_method, contact_details, escalation_message, enabled,
+             welcome_message, not_found_message, contact_method, contact_details, escalation_message, enabled,
              is_portal_wide, created_at, updated_at
       FROM knowledge_sources
       ORDER BY is_portal_wide DESC, name ASC, id ASC
@@ -374,6 +376,8 @@ export class DatabaseStorage {
       .input("library_name", sql.NVarChar(255), source.libraryName ?? null)
       .input("sharepoint_mode", sql.NVarChar(20), source.sharepointMode ?? "inherit")
       .input("description", sql.NVarChar(sql.MAX), source.description ?? "")
+      .input("welcome_message", sql.NVarChar(sql.MAX), source.welcomeMessage ?? "")
+      .input("not_found_message", sql.NVarChar(sql.MAX), source.notFoundMessage ?? "")
       .input("instructions", sql.NVarChar(sql.MAX), source.instructions ?? "")
       .input("sme_team", sql.NVarChar(255), source.smeTeam ?? "")
       .input("contact_method", sql.NVarChar(255), source.contactMethod ?? "")
@@ -383,11 +387,11 @@ export class DatabaseStorage {
       .input("is_portal_wide", sql.Bit, source.isPortalWide ? 1 : 0)
       .query(`
         INSERT INTO knowledge_sources
-          (name, library_name, sharepoint_mode, description, instructions, sme_team,
+          (name, library_name, sharepoint_mode, description, welcome_message, not_found_message, instructions, sme_team,
            contact_method, contact_details, escalation_message, enabled, is_portal_wide)
         OUTPUT INSERTED.*
         VALUES
-          (@name, @library_name, @sharepoint_mode, @description, @instructions, @sme_team,
+          (@name, @library_name, @sharepoint_mode, @description, @welcome_message, @not_found_message, @instructions, @sme_team,
            @contact_method, @contact_details, @escalation_message, @enabled, @is_portal_wide)
       `);
     return mapKnowledgeSource(result.recordset[0]);
@@ -401,6 +405,8 @@ export class DatabaseStorage {
       .input("library_name", sql.NVarChar(255), source.libraryName ?? null)
       .input("sharepoint_mode", sql.NVarChar(20), source.sharepointMode ?? "inherit")
       .input("description", sql.NVarChar(sql.MAX), source.description ?? "")
+      .input("welcome_message", sql.NVarChar(sql.MAX), source.welcomeMessage ?? "")
+      .input("not_found_message", sql.NVarChar(sql.MAX), source.notFoundMessage ?? "")
       .input("instructions", sql.NVarChar(sql.MAX), source.instructions ?? "")
       .input("sme_team", sql.NVarChar(255), source.smeTeam ?? "")
       .input("contact_method", sql.NVarChar(255), source.contactMethod ?? "")
@@ -411,6 +417,7 @@ export class DatabaseStorage {
       .query(`
         UPDATE knowledge_sources SET
           name = @name, library_name = @library_name, sharepoint_mode = @sharepoint_mode, description = @description,
+          welcome_message = @welcome_message, not_found_message = @not_found_message,
           instructions = @instructions, sme_team = @sme_team,
           contact_method = @contact_method, contact_details = @contact_details,
           escalation_message = @escalation_message, enabled = @enabled,

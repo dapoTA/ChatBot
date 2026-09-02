@@ -237,6 +237,8 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
     libraryName: null,
     sharepointMode: "inherit",
     description: "Searches the full configured SharePoint site collection.",
+    welcomeMessage: "",
+    notFoundMessage: "",
     instructions: "",
     smeTeam: "",
     contactMethod: "",
@@ -250,6 +252,8 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
     libraryName: "PTO",
     sharepointMode: "inherit",
     description: "Searches the PTO and leave information library.",
+    welcomeMessage: "",
+    notFoundMessage: "",
     instructions: "",
     smeTeam: "",
     contactMethod: "",
@@ -263,6 +267,8 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
     libraryName: "HR",
     sharepointMode: "inherit",
     description: "Searches the HR information library.",
+    welcomeMessage: "",
+    notFoundMessage: "",
     instructions: "",
     smeTeam: "",
     contactMethod: "",
@@ -276,6 +282,8 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
     libraryName: "Company Policies",
     sharepointMode: "inherit",
     description: "Searches the company policies library.",
+    welcomeMessage: "",
+    notFoundMessage: "",
     instructions: "",
     smeTeam: "",
     contactMethod: "",
@@ -292,6 +300,18 @@ function normaliseSourceValue(value) {
 
 function knowledgeSourceDocumentKey(source) {
   return `knowledge-source:${source.id}`;
+}
+
+function defaultSourceWelcomeMessage(source) {
+  if (!source || source.isPortalWide) return "Ask me anything about the full portal.";
+  return `Ask me anything ${source.name} related.`;
+}
+
+function defaultSourceNotFoundMessage(source) {
+  if (!source) {
+    return "I'm sorry, I couldn't find relevant information for your request in the available documents.";
+  }
+  return `I'm sorry, I couldn't find relevant information in the selected "${source.name}" knowledge source.`;
 }
 
 function requestUsername(req) {
@@ -452,15 +472,26 @@ export async function registerRoutes(httpServer, app) {
   // ─── Knowledge source administration ──────────────────────────────────────
   app.get(api.knowledgeSources.options.path, async (_req, res) => {
     const sources = await storage.getKnowledgeSources();
+    const appCfg = await storage.getAppSettings();
     res.json(
       sources
         .filter((source) => source.enabled)
-        .map((source) => ({
-          id: source.id,
-          name: source.name,
-          description: source.description ?? "",
-          isPortalWide: source.isPortalWide,
-        })),
+        .map((source) => {
+          const legacyPortalInstructions = source.isPortalWide
+            ? appCfg?.customInstructions?.trim() || ""
+            : "";
+          const effectiveInstructions = source.instructions?.trim() || legacyPortalInstructions;
+          return {
+            id: source.id,
+            name: source.name,
+            description: source.description ?? "",
+            welcomeMessage: source.welcomeMessage?.trim()
+              || (source.isPortalWide ? appCfg?.welcomeMessage?.trim() : "")
+              || defaultSourceWelcomeMessage(source),
+            responseStyle: extractGlobalResponseStyle(effectiveInstructions),
+            isPortalWide: source.isPortalWide,
+          };
+        }),
     );
   });
 
@@ -570,6 +601,8 @@ export async function registerRoutes(httpServer, app) {
         libraryName: merged.libraryName,
         sharepointMode: merged.sharepointMode ?? "inherit",
         description: merged.description ?? "",
+        welcomeMessage: merged.welcomeMessage ?? "",
+        notFoundMessage: merged.notFoundMessage ?? "",
         instructions: merged.instructions ?? "",
         smeTeam: merged.smeTeam ?? "",
         contactMethod: merged.contactMethod ?? "",
@@ -647,33 +680,38 @@ export async function registerRoutes(httpServer, app) {
         knowledgeSources,
       );
       const appCfg = await storage.getAppSettings();
-      const notFoundMessage = appCfg?.notFoundMessage
-        ?? "I'm sorry, I couldn't find relevant information for your request in the available documents. Please check your SharePoint library directly or contact your administrator.";
-      const rawInstructions = appCfg?.customInstructions?.trim() || null;
-      // Strip any not-found fallback the admin may have written in their custom
-      // instructions — the Not Found Message field is the sole source of truth.
-      const strippedInstructions = stripNotFoundFallback(rawInstructions);
-      const customInstructions = preprocessInstructions(strippedInstructions);
-      const sourceInstructions = selectedSource?.instructions?.trim()
-        ? preprocessInstructions(stripNotFoundFallback(selectedSource.instructions.trim()))
+      const legacyPortalNotFoundMessage = selectedSource?.isPortalWide
+        ? appCfg?.notFoundMessage?.trim()
+        : null;
+      const sourceNotFoundMessage = selectedSource?.notFoundMessage?.trim()
+        || legacyPortalNotFoundMessage
+        || defaultSourceNotFoundMessage(selectedSource);
+      const legacyPortalInstructions = selectedSource?.isPortalWide
+        ? appCfg?.customInstructions?.trim() || null
+        : null;
+      const rawSourceInstructions = selectedSource?.instructions?.trim()
+        || legacyPortalInstructions;
+      const sourceInstructions = rawSourceInstructions
+        ? preprocessInstructions(stripNotFoundFallback(rawSourceInstructions))
         : null;
       const configuredEscalation = sourceEscalationText(selectedSource);
-      const effectiveNotFoundMessage = configuredEscalation || notFoundMessage;
+      const effectiveNotFoundMessage = [sourceNotFoundMessage, configuredEscalation]
+        .filter(Boolean)
+        .join("\n\n");
 
       const context = docs.map(d =>
         `[SOURCE]\nTitle: ${d.title}\nURL: ${d.url}\nType: ${d.type}\nContent: ${d.content}`
       ).join('\n\n---\n\n');
 
       const systemPrompt = `You are a SharePoint document assistant for this organization.
-${customInstructions ? `\nOwner instructions — these are pre-approved by the organisation and govern your tone, style, format, prefix text, and response structure. Follow them precisely for every response:\n${customInstructions}\n` : ''}
 ${selectedSource ? `\nKnowledge scope — answer only from the selected "${selectedSource.name}" source. Do not use documents from another source.\n` : ''}
-${sourceInstructions ? `Source-specific instructions — these apply only to the selected knowledge source:\n${sourceInstructions}\n` : ''}
+${sourceInstructions ? `Selected-source instructions — these apply only to the selected knowledge source and govern tone, style, format, prefix text, and response structure:\n${sourceInstructions}\n` : ''}
 NOT FOUND OVERRIDE: If the answer is not found in the approved documents below, you MUST respond with EXACTLY the following message — no more, no less. This overrides any alternative not-found or fallback wording that may appear in the owner instructions above:
 ${effectiveNotFoundMessage}
 
-For all other responses, the owner instructions above control your tone, style, and format. The restriction below applies only to factual content:
+For all other responses, the selected-source instructions above control your tone, style, and format. The restriction below applies only to factual content:
 
-You may ONLY use factual content from the approved documents below to answer questions. Do not draw on your training data, general knowledge, or assumptions for factual answers. You MAY follow the owner instructions above for formatting, prefixes, tone, and response structure — those are pre-approved and not subject to this restriction.
+You may ONLY use factual content from the approved documents below to answer questions. Do not draw on your training data, general knowledge, or assumptions for factual answers. You MAY follow the selected-source instructions above for formatting, prefixes, tone, and response structure — those are pre-approved and not subject to this restriction.
 
 Rules:
 - If you cannot find a direct answer in the documents, use the exact not-found message above. Do not guess or infer.

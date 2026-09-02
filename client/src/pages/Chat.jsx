@@ -12,6 +12,7 @@ import rehypeRaw from "rehype-raw";
 
 function getSourcePrompt(source, fallback) {
   if (!source) return fallback;
+  if (source.welcomeMessage?.trim()) return source.welcomeMessage.trim();
   if (source.isPortalWide) return "Ask me anything about the full portal.";
   return `Ask me anything ${source.name} related.`;
 }
