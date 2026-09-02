@@ -1,0 +1,252 @@
+.card {
+  max-width: 760px;
+  overflow: hidden;
+  border: 1px solid #d7e1e7;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(16, 38, 63, 0.08);
+  color: #183047;
+  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 66px;
+  padding: 0 20px;
+  background: #10263f;
+  color: #ffffff;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #188b6a;
+}
+
+.brandBubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 17px;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 1px;
+}
+
+.brandBubble::after {
+  position: absolute;
+  right: 1px;
+  bottom: -5px;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  content: "";
+  transform: skewY(-35deg);
+}
+
+.eyebrow {
+  margin-bottom: 2px;
+  color: #aad5c6;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.body {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.description {
+  margin: 0;
+  color: #52677a;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.field,
+.questionForm {
+  display: grid;
+  gap: 7px;
+}
+
+.field label,
+.questionForm label {
+  color: #263c54;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.field select,
+.questionForm textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #cfdbe2;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #183047;
+  font: inherit;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.field select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.questionForm textarea {
+  min-height: 58px;
+  padding: 11px 12px;
+  resize: vertical;
+  line-height: 1.4;
+}
+
+.field select:focus,
+.questionForm textarea:focus {
+  border-color: #188b6a;
+  box-shadow: 0 0 0 3px rgba(24, 139, 106, 0.15);
+}
+
+.field select:disabled,
+.questionForm textarea:disabled {
+  background: #f4f7f8;
+  color: #798a99;
+}
+
+.helper {
+  color: #718198;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.questionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.questionRow button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 92px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 9px;
+  background: #188b6a;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.questionRow button:hover:not(:disabled) {
+  background: #116f54;
+}
+
+.questionRow button:focus-visible {
+  outline: 3px solid rgba(24, 139, 106, 0.25);
+  outline-offset: 2px;
+}
+
+.questionRow button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.transcript {
+  display: grid;
+  gap: 10px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 14px;
+  border: 1px solid #e0e7eb;
+  border-radius: 10px;
+  background: #f7fafb;
+}
+
+.userMessage,
+.assistantMessage {
+  display: grid;
+  gap: 4px;
+  max-width: 86%;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.userMessage strong,
+.assistantMessage strong {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.userMessage {
+  justify-self: end;
+  background: #10263f;
+  color: #ffffff;
+}
+
+.assistantMessage {
+  justify-self: start;
+  border: 1px solid #d7e1e7;
+  background: #ffffff;
+  color: #263c54;
+}
+
+.error {
+  padding: 10px 12px;
+  border: 1px solid #e8b4b4;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: #9b1c1c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 520px) {
+  .body {
+    padding: 18px;
+  }
+
+  .questionRow {
+    grid-template-columns: 1fr;
+  }
+
+  .questionRow button {
+    min-height: 44px;
+  }
+
+  .userMessage,
+  .assistantMessage {
+    max-width: 94%;
+  }
+}

@@ -69,6 +69,7 @@ const statements = [
       id                  INT IDENTITY(1,1) PRIMARY KEY,
       name                NVARCHAR(255) NOT NULL,
       library_name        NVARCHAR(255),
+      sharepoint_mode     NVARCHAR(20) NOT NULL DEFAULT 'inherit',
       description         NVARCHAR(MAX) NOT NULL DEFAULT '',
       instructions        NVARCHAR(MAX) NOT NULL DEFAULT '',
       sme_team            NVARCHAR(255) NOT NULL DEFAULT '',
@@ -102,6 +103,9 @@ const statements = [
 
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'custom_theme_color')
    ALTER TABLE app_settings ADD custom_theme_color NVARCHAR(7) NULL`,
+
+  `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('knowledge_sources') AND name = 'sharepoint_mode')
+   ALTER TABLE knowledge_sources ADD sharepoint_mode NVARCHAR(20) NOT NULL CONSTRAINT df_knowledge_sources_sharepoint_mode DEFAULT 'inherit'`,
 
   `IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('app_settings') AND name = 'launcher_label')
    ALTER TABLE app_settings ADD launcher_label NVARCHAR(40) NOT NULL CONSTRAINT df_app_settings_launcher_label DEFAULT 'Ask inSite'`,

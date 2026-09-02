@@ -235,6 +235,7 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
   {
     name: "All Portal Sources",
     libraryName: null,
+    sharepointMode: "inherit",
     description: "Searches the full configured SharePoint site collection.",
     instructions: "",
     smeTeam: "",
@@ -247,6 +248,7 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
   {
     name: "PTO",
     libraryName: "PTO",
+    sharepointMode: "inherit",
     description: "Searches the PTO and leave information library.",
     instructions: "",
     smeTeam: "",
@@ -259,6 +261,7 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
   {
     name: "HR",
     libraryName: "HR",
+    sharepointMode: "inherit",
     description: "Searches the HR information library.",
     instructions: "",
     smeTeam: "",
@@ -271,6 +274,7 @@ const DEFAULT_KNOWLEDGE_SOURCES = [
   {
     name: "Company Policies",
     libraryName: "Company Policies",
+    sharepointMode: "inherit",
     description: "Searches the company policies library.",
     instructions: "",
     smeTeam: "",
@@ -495,6 +499,7 @@ export async function registerRoutes(httpServer, app) {
         ...input,
         name: input.name.trim(),
         libraryName: input.libraryName.trim(),
+        sharepointMode: input.sharepointMode ?? "online",
       });
       res.status(201).json(created);
     } catch (err) {
@@ -563,6 +568,7 @@ export async function registerRoutes(httpServer, app) {
       const updated = await storage.updateKnowledgeSource(id, {
         name: merged.name,
         libraryName: merged.libraryName,
+        sharepointMode: merged.sharepointMode ?? "inherit",
         description: merged.description ?? "",
         instructions: merged.instructions ?? "",
         smeTeam: merged.smeTeam ?? "",
@@ -613,11 +619,13 @@ export async function registerRoutes(httpServer, app) {
 
   app.post(api.chat.send.path, async (req, res) => {
     try {
-      const { message, username, sessionId, sourceId } = api.chat.send.input.parse(req.body);
+       const { message, username, sessionId, sourceId } = api.chat.send.input.parse(req.body);
 
       const allDocuments = await storage.getDocuments();
       const knowledgeSources = await storage.getKnowledgeSources();
-      let selectedSource = null;
+       let selectedSource = sourceId == null
+         ? knowledgeSources.find((source) => source.isPortalWide && source.enabled) ?? null
+         : null;
       if (sourceId != null) {
         selectedSource = knowledgeSources.find(
           (source) => source.id === sourceId && source.enabled,
@@ -947,7 +955,18 @@ ${context || "No documents have been loaded yet. Please sync your SharePoint lib
       }
 
       for (const source of knowledgeSources) {
-        const sourceConfig = { ...config, libraryName: source.libraryName };
+        const sourceMode = source.sharepointMode && source.sharepointMode !== "inherit"
+          ? source.sharepointMode
+          : config.mode ?? "online";
+        const sourceSiteUrl = sourceMode === "online"
+          ? config.siteUrlOnline || (config.mode === "online" ? config.siteUrl : "")
+          : config.siteUrlOnprem || (config.mode === "onprem" ? config.siteUrl : "");
+        const sourceConfig = {
+          ...config,
+          mode: sourceMode,
+          siteUrl: sourceSiteUrl || config.siteUrl,
+          libraryName: source.libraryName,
+        };
         try {
           const items = await fetchLibraryItems(sourceConfig);
           console.log(`SharePoint sync: found ${items.length} files in "${source.libraryName}"`);

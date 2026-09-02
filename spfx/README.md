@@ -1,6 +1,11 @@
-# ON-PNT ChatBot Widget — SPFx Application Customizer
+# ON-PNT ChatBot — SPFx Web Part and Application Customizer
 
-Injects the floating ON-PNT chat bubble on every SharePoint Online modern page via a SharePoint Framework Application Customizer. No custom script permissions required.
+This SharePoint Framework solution contains two complementary experiences:
+
+- **inSite Assistant Web Part** — a page-level, source-aware chat card for modern SharePoint Online pages.
+- **ChatBot Widget Application Customizer** — the existing floating chat bubble available across modern pages.
+
+The Web Part is additional. Installing it does not replace or remove the floating widget.
 
 ---
 
@@ -11,7 +16,7 @@ Injects the floating ON-PNT chat bubble on every SharePoint Online modern page v
 | Node.js | 18 LTS (18.17.1 or later, but < 19) |
 | npm | 9+ (bundled with Node 18) |
 
-> **Important:** SPFx 1.20 requires Node.js 18 specifically. Run `node -v` to confirm.
+> **Important:** SPFx 1.18.2 requires Node.js 18 specifically. Run `node -v` to confirm.
 > If you have a different version, install Node 18 from https://nodejs.org/en/download (use the LTS installer).
 
 ---
@@ -44,9 +49,35 @@ spfx/sharepoint/solution/chatbot-widget.sppkg
 6. When prompted: check **"Make this solution available to all sites in the organization"**
 7. Click **Deploy**
 
-### Step 2 — Confirm deployment
+### Step 2 — Add the page-level Web Part
 
-The chat bubble should appear on SharePoint Online modern pages within a few minutes. Hard-refresh (Ctrl+Shift+R) if it doesn't appear immediately.
+1. Open the modern SharePoint Online page where the assistant should appear.
+2. Select **Edit**.
+3. Select the **+** Web Part picker.
+4. Search for **inSite Assistant** and add it to the page.
+5. Edit the Web Part properties if the chatbot server is not
+   `https://chatbot.technicalassurance.com`.
+6. Publish or republish the page.
+
+The Web Part uses the signed-in SharePoint user's login name for chat logging and
+loads enabled knowledge sources from the shared chatbot API. Questions include the
+selected source ID, so PTO, HR, Company Policies, and All Portal Sources use the
+same filtering behavior as the hosted floating widget.
+
+### Step 3 — Provision or retain the floating customizer
+
+The tenant-wide package setting makes the solution available, but it does not by
+itself activate the Application Customizer custom action. Provision the custom
+action at tenant or site scope, or retain the existing custom action if the
+floating widget is already deployed.
+
+Use component ID
+`a3b4c5d6-e7f8-4012-abcd-ef1234567890` and location
+`ClientSideExtension.ApplicationCustomizer`.
+
+After the custom action is present, the chat bubble should appear on modern
+SharePoint Online pages within a few minutes. Hard-refresh (Ctrl+Shift+R) if it
+doesn't appear immediately.
 
 ---
 
@@ -54,17 +85,42 @@ The chat bubble should appear on SharePoint Online modern pages within a few min
 
 The URL defaults to `https://chatbot.technicalassurance.com` (hardcoded in the manifest and TypeScript).
 
-To change it:
-1. Edit `DEFAULT_CHATBOT_URL` in `src/extensions/chatbotWidget/ChatbotWidgetApplicationCustomizer.ts`
-2. Rebuild and re-upload the `.sppkg`
+To change it for the Web Part, edit the Web Part and update **Chatbot server URL**
+in its property pane.
+
+To change it for the tenant-wide floating widget:
+1. Edit `DEFAULT_CHATBOT_URL` in `src/extensions/chatbotWidget/ChatbotWidgetApplicationCustomizer.ts`.
+2. Rebuild and re-upload the `.sppkg`.
 
 ---
 
-## Remove the widget
+## Remove the solution
 
 1. Go to the App Catalog
 2. Find `chatbot-widget-client-side-solution`
 3. Click **...** → **Delete**
+
+Deleting the solution removes both the Web Part and the Application Customizer.
+To remove only the page-level experience, remove the Web Part from each page and
+republish it.
+
+---
+
+## API and CORS requirements
+
+The chatbot host must expose:
+
+- `GET /api/knowledge-sources/options`
+- `POST /api/chat`
+
+The chatbot server must allow requests from SharePoint Online. This project
+already enables CORS for those endpoints. The Web Part sends `sourceId`,
+`sessionId`, and the SharePoint login name with every question.
+
+The login name is a client-supplied identity hint used by the existing shared
+chat contract; it is not a server-verified audit identity. Use an authenticated
+proxy or signed identity assertion before treating chat-log usernames as
+security evidence.
 
 ---
 

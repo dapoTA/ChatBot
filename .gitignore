@@ -6,3 +6,8 @@ vite.config.ts.*
 .env
 .env.dev
 iisnode_logs
+spfx/lib
+spfx/dist
+spfx/temp
+spfx/release
+spfx/sharepoint/solution/debug

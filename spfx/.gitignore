@@ -3,4 +3,5 @@ lib/
 dist/
 temp/
 sharepoint/solution/*.sppkg
+!sharepoint/solution/chatbot-widget.sppkg
 .heft/

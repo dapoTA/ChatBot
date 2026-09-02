@@ -3,7 +3,7 @@
   "solution": {
     "name": "chatbot-widget-client-side-solution",
     "id": "b4c5d6e7-f8a9-4123-bcde-f12345678901",
-    "version": "1.0.0.0",
+    "version": "1.1.0.0",
     "includeClientSideAssets": true,
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
@@ -16,10 +16,10 @@
     },
     "metadata": {
       "shortDescription": {
-        "default": "ON-PNT ChatBot floating widget"
+        "default": "ON-PNT source-aware chat web part and floating widget"
       },
       "longDescription": {
-        "default": "Injects the ON-PNT floating AI chat assistant on every SharePoint Online page."
+        "default": "Adds the ON-PNT source-aware chat Web Part and retains the floating AI chat assistant Application Customizer."
       },
       "screenshotPaths": [],
       "videoUrl": "",

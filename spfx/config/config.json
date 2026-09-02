@@ -9,6 +9,14 @@
           "manifest": "./src/extensions/chatbotWidget/ChatbotWidgetApplicationCustomizer.manifest.json"
         }
       ]
+    },
+    "source-aware-chat-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/sourceAwareChat/SourceAwareChatWebPart.js",
+          "manifest": "./src/webparts/sourceAwareChat/SourceAwareChatWebPart.manifest.json"
+        }
+      ]
     }
   },
   "externals": {},

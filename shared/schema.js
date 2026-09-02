@@ -66,6 +66,7 @@ export const knowledgeSources = pgTable("knowledge_sources", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   libraryName: text("library_name"),
+  sharepointMode: text("sharepoint_mode").notNull().default("inherit"),
   description: text("description").notNull().default(""),
   instructions: text("instructions").notNull().default(""),
   smeTeam: text("sme_team").notNull().default(""),
@@ -112,6 +113,7 @@ export const insertKnowledgeSourceSchema = createInsertSchema(knowledgeSources)
   .extend({
     name: z.string().trim().min(1, "Source name is required").max(255),
     libraryName: z.string().trim().max(255).optional().nullable(),
+    sharepointMode: z.enum(["inherit", "onprem", "online"]).optional().default("online"),
     description: z.string().optional().default(""),
     instructions: z.string().optional().default(""),
     smeTeam: z.string().optional().default(""),

@@ -1,2 +1,3 @@
 - [User preferences](user-preferences.md) — end every thread with the user’s specified account reminder link.
 - [Main and design baseline](main-design-baseline.md) — preserve the legacy/main baseline for testing while approved design work stays synchronized with implementation.
+- [SPFx build environment](spfx-build-environment.md) — build SPFx 1.18 with Node 18 and isolate its legacy config from the main ESM app.

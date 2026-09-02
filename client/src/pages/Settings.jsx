@@ -97,6 +97,7 @@ const sharepointSchema = z.object({
 const EMPTY_SOURCE = {
   name: "",
   libraryName: "",
+  sharepointMode: "online",
   description: "",
   instructions: "",
   smeTeam: "",
@@ -294,6 +295,7 @@ export default function Settings() {
       data: {
         name,
         libraryName: sourceDraft.isPortalWide ? null : libraryName,
+        sharepointMode: sourceDraft.sharepointMode,
         description: sourceDraft.description.trim(),
         instructions: sourceDraft.instructions.trim(),
         smeTeam: sourceDraft.smeTeam.trim(),
@@ -960,6 +962,15 @@ export default function Settings() {
                         <div className="flex flex-wrap items-center gap-2">
                           <FolderOpen className="h-4 w-4 text-[#1e765c]" />
                           <span className="text-[12px] font-semibold text-[#344a60]">{source.name}</span>
+                          {!source.isPortalWide && (
+                            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
+                              {source.sharepointMode === "inherit"
+                                ? "Active connection"
+                                : source.sharepointMode === "onprem"
+                                  ? "SharePoint 2019"
+                                  : "SharePoint Online"}
+                            </span>
+                          )}
                           <span className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
                             source.enabled
                               ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
@@ -1047,7 +1058,7 @@ export default function Settings() {
                             <strong>All Portal Sources</strong> searches the full configured SharePoint site collection. Its guidance is separate from every individual library.
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-1">
                               <Label htmlFor={`source-name-${source.id}`}>Source Name</Label>
                               <Input
@@ -1067,6 +1078,20 @@ export default function Settings() {
                                 placeholder="HR"
                                 data-testid={`input-source-library-${source.id}`}
                               />
+                            </div>
+                            <div className="space-y-1">
+                              <Label htmlFor={`source-mode-${source.id}`}>SharePoint environment</Label>
+                              <select
+                                id={`source-mode-${source.id}`}
+                                value={sourceDraft.sharepointMode}
+                                onChange={(event) => updateSourceDraft("sharepointMode", event.target.value)}
+                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                data-testid={`select-source-mode-${source.id}`}
+                              >
+                                <option value="inherit">Use active connection</option>
+                                <option value="online">SharePoint Online</option>
+                                <option value="onprem">SharePoint 2019 on-premises</option>
+                              </select>
                             </div>
                           </div>
                         )}
@@ -1228,6 +1253,20 @@ export default function Settings() {
                     placeholder="Finance"
                     data-testid="input-new-source-library"
                   />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="new-source-mode">SharePoint environment</Label>
+                  <select
+                    id="new-source-mode"
+                    value={sourceDraft.sharepointMode}
+                    onChange={(event) => updateSourceDraft("sharepointMode", event.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    data-testid="select-new-source-mode"
+                  >
+                    <option value="inherit">Use active connection</option>
+                    <option value="online">SharePoint Online</option>
+                    <option value="onprem">SharePoint 2019 on-premises</option>
+                  </select>
                 </div>
               </div>
 
