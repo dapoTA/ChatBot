@@ -20,6 +20,12 @@ interface IChatMessage {
   content: string;
 }
 
+function getSourcePrompt(source?: IKnowledgeSource): string {
+  if (!source) return 'Ask me anything about the full portal.';
+  if (source.isPortalWide) return 'Ask me anything about the full portal.';
+  return `Ask me anything ${source.name} related.`;
+}
+
 function normaliseServerUrl(value: string): string {
   return String(value || 'https://chatbot.technicalassurance.com').replace(/\/+$/, '');
 }
@@ -87,6 +93,7 @@ const SourceAwareChat: React.FC<ISourceAwareChatProps> = ({
   const selectedSource = sources.find(
     (source) => String(source.id) === selectedSourceId
   );
+  const sourcePrompt = getSourcePrompt(selectedSource);
 
   const submitQuestion = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -155,7 +162,7 @@ const SourceAwareChat: React.FC<ISourceAwareChatProps> = ({
 
       <div className={styles.body}>
         <p className={styles.description}>
-          Ask a question using approved content from your SharePoint portal.
+          {sourcePrompt}
           {displayName ? ` Welcome, ${displayName}.` : ''}
         </p>
 
@@ -209,7 +216,7 @@ const SourceAwareChat: React.FC<ISourceAwareChatProps> = ({
               id="inSite-question"
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="What would you like to know?"
+              placeholder={sourcePrompt}
               rows={2}
               disabled={isSending}
             />

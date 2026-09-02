@@ -10,6 +10,12 @@ import rehypeRaw from "rehype-raw";
 // rehypeRaw allows the AI to emit styled HTML (e.g. <span style="...">).
 // Content comes from the OpenAI API, not directly from end-users.
 
+function getSourcePrompt(source, fallback) {
+  if (!source) return fallback;
+  if (source.isPortalWide) return "Ask me anything about the full portal.";
+  return `Ask me anything ${source.name} related.`;
+}
+
 export default function Chat({
   isWidget = false,
   messages,
@@ -38,6 +44,7 @@ export default function Chat({
   const selectedSource = knowledgeSources.find(
     (source) => String(source.id) === String(selectedSourceId),
   );
+  const sourcePrompt = getSourcePrompt(selectedSource, welcomeMessage);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -104,7 +111,7 @@ export default function Chat({
                 <Bot className="w-5 h-5 text-primary" />
               </div>
               <p className="text-sm text-muted-foreground">
-                {welcomeMessage}
+                {sourcePrompt}
               </p>
             </div>
           )}
@@ -204,7 +211,7 @@ export default function Chat({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
+            placeholder={sourcePrompt}
             className="flex-1 py-2 text-sm rounded-full border-border focus-visible:ring-primary/20 bg-card"
             disabled={isPending}
             data-testid="input-message"
