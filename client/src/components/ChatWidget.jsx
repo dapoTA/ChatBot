@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
@@ -99,6 +99,28 @@ export function ChatWidget() {
       setIsPending(false);
     }
   };
+
+  useEffect(() => {
+    const handleRoofusMessage = (event) => {
+      if (event.data?.type !== "roofus:ask") return;
+
+      const question = String(event.data?.question || "").trim();
+      if (!question) return;
+
+      setIsOpen(true);
+      setIsMinimized(false);
+      setSessionId((prev) => prev || crypto.randomUUID());
+      notifyParent("chatbot:open");
+
+      handleSend(question);
+    };
+
+    window.addEventListener("message", handleRoofusMessage);
+
+    return () => {
+      window.removeEventListener("message", handleRoofusMessage);
+    };
+  }, [sessionId, spUser]);
 
   return (
     <>
