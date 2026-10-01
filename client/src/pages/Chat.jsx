@@ -10,7 +10,7 @@ import rehypeRaw from "rehype-raw";
 // rehypeRaw allows the AI to emit styled HTML (e.g. <span style="...">).
 // Content comes from the OpenAI API, not directly from end-users.
 
-export default function Chat({ isWidget = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents.", responseStyle = null }) {
+export default function Chat({ isWidget = false, isEmbedded = false, messages, isPending, isError, onSend, welcomeMessage = "Ask me anything about your SharePoint documents.", responseStyle = null }) {
 
   // Convert responseStyle object → a CSS style object applied to assistant message containers.
   // CSS inheritance means child elements with their own inline styles (e.g. the red bold prefix)
@@ -24,12 +24,27 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
   } : {};
   const [input, setInput] = useState("");
   const scrollRef = useRef(null);
+  const lastUserMessageRef = useRef(null);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isPending]);
+	useEffect(() => {
+	  if (!isEmbedded) {
+		// Preserve the existing behavior for normal Roofus.
+		if (scrollRef.current) {
+		  scrollRef.current.scrollIntoView({ behavior: "smooth" });
+		}
+		return;
+	  }
+
+	  // In embedded mode, keep the newest question near the top.
+	  // Run again when the assistant response arrives, when there is
+	  // enough content below the question for the viewport to reposition.
+	  if (lastUserMessageRef.current) {
+		lastUserMessageRef.current.scrollIntoView({
+		  behavior: "smooth",
+		  block: "start",
+		});
+	  }
+	}, [messages, isPending, isEmbedded]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -67,9 +82,14 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
           )}
 
           <AnimatePresence initial={false}>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
+			{messages.map((msg, index) => (
+			  <motion.div
+				key={msg.id}
+				ref={
+				  msg.role === "user" && index === messages.length - 1
+					? lastUserMessageRef
+					: null
+				}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
@@ -82,14 +102,17 @@ export default function Chat({ isWidget = false, messages, isPending, isError, o
                     <Bot className="w-3 h-3 text-primary-foreground" />
                   </div>
                 )}
-                <div
-                  className={cn(
-                    "max-w-sm p-3 rounded-lg text-sm leading-relaxed",
-                    msg.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-none"
-                      : "bg-white dark:bg-secondary text-foreground border border-border rounded-bl-none"
-                  )}
-                >
+				<div
+				  className={cn(
+					"p-3 rounded-lg text-sm leading-relaxed",
+					msg.role === "user"
+					  ? "max-w-sm bg-primary text-primary-foreground rounded-br-none"
+					  : cn(
+						  isEmbedded ? "max-w-[85%]" : "max-w-sm",
+						  "bg-white dark:bg-secondary text-foreground border border-border rounded-bl-none"
+						)
+				  )}
+				>
                   {msg.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none" style={globalMsgStyle}>
                   <ReactMarkdown

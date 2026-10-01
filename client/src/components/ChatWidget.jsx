@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Minus, Maximize2 } from "lucide-react";
@@ -10,7 +10,13 @@ const DEFAULTS = {
   welcomeMessage: "Ask me anything about your SharePoint documents.",
 };
 
+const ALLOWED_PARENT_ORIGINS = new Set([
+  "https://technicalassurance.sharepoint.com",
+]);
+
 export function ChatWidget() {
+  const isEmbedded = new URLSearchParams(window.location.search).get("embedded") === "1";
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -43,6 +49,15 @@ export function ChatWidget() {
     }
   };
 
+	useEffect(() => {
+	  if (!isEmbedded || !assistantName) return;
+
+	  notifyParent({
+		type: "roofus:ready",
+		assistantName,
+	  });
+	}, [isEmbedded, assistantName]);
+
   const handleOpen = () => {
     setIsOpen(true);
     setIsMinimized(false);
@@ -72,7 +87,7 @@ export function ChatWidget() {
     notifyParent("chatbot:open");
   };
 
-  const handleSend = async (message) => {
+  const handleSend = async (message, sessionIdOverride = "") => {
     const userMsg = {
       id: Date.now(),
       role: "user",
@@ -88,7 +103,7 @@ export function ChatWidget() {
       const res = await apiRequest("POST", "/api/chat", {
         message,
         ...(spUser    ? { username:  spUser    } : {}),
-        ...(sessionId ? { sessionId: sessionId } : {}),
+        ...((sessionIdOverride || sessionId) ? { sessionId: sessionIdOverride || sessionId } : {}),
       });
       if (!res.ok) throw new Error("Failed");
       const assistantMsg = await res.json();
@@ -99,6 +114,47 @@ export function ChatWidget() {
       setIsPending(false);
     }
   };
+
+  // Receive questions submitted from the InSite Ask Roofus header.
+  useEffect(() => {
+	const handleRoofusMessage = (event) => {
+	  if (!ALLOWED_PARENT_ORIGINS.has(event.origin)) return;
+
+	  if (event.data?.type === "roofus:minimize") {
+		setIsMinimized(true);
+		notifyParent("chatbot:minimize");
+		return;
+	  }
+
+	  if (event.data?.type === "roofus:close") {
+		handleClose();
+		return;
+	  }
+
+	  if (event.data?.type !== "roofus:ask") return;
+
+	  const question = String(event.data?.question || "").trim();
+	  if (!question) return;
+
+	  const activeSessionId = sessionId || crypto.randomUUID();
+
+	  if (!sessionId) {
+		setSessionId(activeSessionId);
+	  }
+
+	  setIsOpen(true);
+	  setIsMinimized(false);
+	  notifyParent("chatbot:open");
+
+	  handleSend(question, activeSessionId);
+	};
+
+    window.addEventListener("message", handleRoofusMessage);
+
+    return () => {
+      window.removeEventListener("message", handleRoofusMessage);
+    };
+  }, [sessionId, spUser]);
 
   return (
     <>
@@ -131,12 +187,13 @@ export function ChatWidget() {
             exit={{ opacity: 0, y: 60, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             style={{
-              position: "fixed",
-              bottom: 20,
-              right: 20,
+              position: isEmbedded ? "relative" : "fixed",
+              bottom: isEmbedded ? "auto" : 20,
+              right: isEmbedded ? "auto" : 20,
               zIndex: 9999,
-              width: 420,
-              maxWidth: "calc(100vw - 40px)",
+              width: isEmbedded ? "100%" : 420,
+              maxWidth: isEmbedded ? "none" : "calc(100vw - 40px)",
+              height: isEmbedded ? "100%" : "auto",
             }}
             data-testid="dialog-chat"
           >
@@ -192,17 +249,18 @@ export function ChatWidget() {
               <div
                 style={{
                   background: "hsl(var(--background))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: 16,
-                  boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-                  height: 580,
+                  border: isEmbedded ? "none" : "1px solid hsl(var(--border))",
+                  borderRadius: isEmbedded ? 0 : 16,
+                  boxShadow: isEmbedded ? "none" : "0 4px 16px rgba(0,0,0,0.12)",
+                  height: isEmbedded ? "100%" : 580,
                   display: "flex",
                   flexDirection: "column",
                   overflow: "hidden",
                 }}
               >
-                {/* Header */}
-                <div
+				{/* Header — floating mode only; InSite modal provides its own header */}
+				{!isEmbedded && (
+				<div
                   style={{
                     height: 56,
                     borderBottom: "1px solid hsl(var(--border))",
@@ -242,12 +300,14 @@ export function ChatWidget() {
                       <X style={{ width: 14, height: 14 }} />
                     </IconButton>
                   </div>
-                </div>
+				</div>
+				)}
 
-                {/* Chat Body */}
+				{/* Chat Body */}
                 <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                   <Chat
                     isWidget
+					isEmbedded={isEmbedded}
                     messages={messages}
                     isPending={isPending}
                     isError={isError}
